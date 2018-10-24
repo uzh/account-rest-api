@@ -37,7 +37,7 @@ class AccountRestService(falcon.API):
     logger = logging.getLogger(__name__)
 
     """Service wrapper for our Falcon API"""
-    def __init__(self, config, https_only=True, enable_auth=True):
+    def __init__(self, config, https_only=True, enable_auth=True, enable_validator=True):
         database_engine = database(config.database().get("connection"))
         middleware = [
             CrossDomain(config.general().get("crossdomain-origin")),
@@ -65,14 +65,13 @@ class AccountRestService(falcon.API):
         self.logger.debug("initializing routes")
         # Build routes
         self.add_route("/", RootResources())
-        self.add_route("/users", UserResources())
         self.add_route("/accounts", AccountResources())
-        #self.add_route("/nodes", NodeResources())
+        self.add_route("/users", UserResources())
 
     def start(self):
         """ A hook to when a Gunicorn worker calls run()."""
-        self.logger.info("started slurm rest api")
+        self.logger.info("started accounting rest api")
 
     def stop(self, signal):
         """ A hook to when a Gunicorn worker starts shutting down. """
-        self.logger.info("stopped slurm rest api")
+        self.logger.info("stopped accounting rest api")

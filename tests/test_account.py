@@ -31,14 +31,19 @@ from api import AccountRestService, Config
 
 @pytest.fixture()
 def client():
-    # Assume the hypothetical `myapp` package has a function called
-    # `create()` to initialize and return a `falcon.API` instance.
+    # for testing we inject a temporary database, disable https and disable authorization
     config = Config(create=False)
-    config.update("database", "connection", "")
-    return testing.TestClient(AccountRestService(Config(create=False), https_only=False, enable_auth=False))
+    config.update("database", "connection", "sqlite://")
+    return testing.TestClient(AccountRestService(config, https_only=False, enable_auth=False))
 
 
-def test_get_message(client):
+def test_getting_non_existent_account(client):
     expected = {"message": "Hello, World!"}
-    result = client.simulate_get('/')
+    result = client.simulate_get('/accounts/test')
+    assert result.json == expected
+
+
+def test_create_new_account(client):
+    expected = {"message": "Hello, World!"}
+    result = client.simulate_put('/accounts/name="test"&principal_investigator="test_pi"&faculty="test_faculty"&department="test_department"')
     assert result.json == expected

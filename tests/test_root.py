@@ -31,9 +31,10 @@ from api import AccountRestService, Config
 
 @pytest.fixture()
 def client():
-    # Assume the hypothetical `myapp` package has a function called
-    # `create()` to initialize and return a `falcon.API` instance.
-    return testing.TestClient(AccountRestService(Config(create=False), https_only=False, enable_auth=False))
+    # for testing we inject a temporary database, disable https and disable authorization
+    config = Config(create=False)
+    config.update("database", "connection", "sqlite://")
+    return testing.TestClient(AccountRestService(config, https_only=False, enable_auth=False))
 
 
 def test_get_message(client):

@@ -68,7 +68,8 @@ class Config(object):
         self.config = DefaultConfig().create()
         if create:
             self.write(expandvars(expanduser(config_file)))
-        self.config.read(expandvars(expanduser(config_file)))
+        if config_file and exists(expandvars(expanduser(config_file))):
+            self.config.read(expandvars(expanduser(config_file)))
 
     def write(self, path):
         if not exists(path):
