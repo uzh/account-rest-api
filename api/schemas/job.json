@@ -1,0 +1,17 @@
+{
+    "title": "Create Job",
+    "type": "object",
+    "properties": {
+        "partition": {
+            "type": "string"
+        },
+        "num_cpus": {
+            "type": "integer",
+            "minimum": 0
+        }
+    },
+    "required": [
+        "partition",
+        "num_cpus"
+    ]
+}
