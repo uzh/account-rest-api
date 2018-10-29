@@ -22,10 +22,13 @@ import logging
 
 import connexion
 from flask_cors import CORS
+from flask_ldap import LDAP
 
 
 class AccountRestService(object):
     logger = logging.getLogger(__name__)
+
+    ldap = None
 
     def __init__(self, config, https=True, auth=True, direct=False):
         """
@@ -35,6 +38,7 @@ class AccountRestService(object):
         :param auth: enable/disable authorization
         :param direct: direct start API (don't use Gunicorn)
         """
+        global ldap
         self.config = config
         self.direct = direct
         self.logger.debug("initializing routes")
@@ -43,22 +47,31 @@ class AccountRestService(object):
             self.app = connexion.FlaskApp(__name__, specification_dir='swagger/')
         else:
             self.app = connexion.FlaskApp(__name__,
-                                          port=self.config.flask.get('port'),
+                                          port=self.config.general.get('port'),
                                           specification_dir='swagger/',
                                           server='gunicorn')
+        if auth:
+            self.app.app.config['LDAP_HOST'] = self.config.ldap().get('host')
+            self.app.app.config['LDAP_PORT'] = self.config.ldap().get('port')
+            self.app.app.config['LDAP_SCHEMA'] = self.config.ldap().get('schema')
+            self.app.app.config['LDAP_DOMAIN'] = self.config.ldap().get('domain')
+            self.app.app.config['LDAP_SEARCH_BASE'] = self.config.general().get('search_base')
+            ldap = LDAP(self.app.app)
+            self.app.app.secret_key = self.config.general().get("secret")
+            self.app.app.add_url_rule('/login', 'login', ldap.login, methods=['POST'])
         # Build routes
         self.app.add_api('api.yaml')
         # add CORS support
-        if self.config.general().get("CORS"):
+        if self.config.general().get('CORS'):
             CORS(self.app.app)
 
     def start(self):
         """ A hook to when a Gunicorn worker calls run()."""
         self.logger.info("started accounting rest api")
         if self.direct:
-            self.app.run(port=self.config.flask().get('port'), debug=self.config.flask().get('debug'))
+            self.app.run(port=self.config.general().get('port'), debug=self.config.general().get('debug'))
         else:
-            self.app.run(debug=self.config.flask().get('debug'))
+            self.app.run(debug=self.config.general().get('debug'))
 
     def stop(self, signal):
         """ A hook to when a Gunicorn worker starts shutting down. """

@@ -33,23 +33,26 @@ class DefaultConfig(object):
         config = configparser.ConfigParser()
         config.add_section("general")
         config.set("general", "CORS", False)
-        config.set("general", "authentication", "ldap")
+        config.set("general", "secret", "change-me-please")
+        config.set("general", "port", 8080)
+        config.set("general", "debug", False)
 
-        config.add_section("flask")
-        config.set("flask", "port", 8080)
-        config.set("flask", "debug", False)
+        # config.add_section("token")
+        # config.set("token", "secret", "super-secret-key-please-change")
+        # config.set("token", "name", "auth-token")
+        # config.set("token", "location", "cookie")
 
-        config.add_section("token")
-        config.set("token", "secret", "super-secret-key-please-change")
-        config.set("token", "name", "auth-token")
-        config.set("token", "location", "cookie")
         config.add_section("database")
         config.set("database", "connection", "mysql://root:password@localhost:3306/accounting")
+
         config.add_section("ldap")
-        config.set("ldap", "server", "ldaps://localhost:636")
-        config.set("ldap", "user_loc", "uid")
-        config.set("ldap", "user_dn", "ou=someou,dc=somedc,dc=local")
-        config.set("ldap", "base_dn", "dc=somedc,dc=local")
+        config.set("ldap", "host", "localhost")
+        config.set("ldap", "port", 389)
+        config.set("ldap", "schema", "ldap")
+        config.set("ldap", "domain", "example.com'")
+        config.set("ldap", "search_base", "OU=Domain Users,DC=example,DC=com")
+
+
         config.add_section("accounting")
         config.set("accounting", "ldap_server", "ldaps://localhost:636")
         config.set("accounting", "ldap_user_loc", "uid")
@@ -57,7 +60,7 @@ class DefaultConfig(object):
 
 
         config.add_section("gunicorn")
-        config.set("gunicorn", "bind", "0.0.0.0:{0}".format(config.get("flask", "port")))
+        config.set("gunicorn", "bind", "0.0.0.0:{0}".format(config.get("general", "port")))
         config.set("gunicorn", "pidfile", "/var/run/srg.pid")
         config.set("gunicorn", "keepalive", "650")
         config.set("gunicorn", "max_requests", "0")
@@ -101,9 +104,6 @@ class Config(object):
 
     def general(self):
         return self._fetch("general")
-
-    def flask(self):
-        return self._fetch("flask")
 
     def token(self):
         return self._fetch("token")

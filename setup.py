@@ -34,6 +34,7 @@ prerequisites = ["click",
                  "falcon_auth",
                  "sqlalchemy",
                  "connexion",
+                 "Flask-LDAP",
                  "flask-cors",
                  "jsonschema",
                  "gunicorn"]
