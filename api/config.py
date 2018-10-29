@@ -32,9 +32,13 @@ class DefaultConfig(object):
     def create():
         config = configparser.ConfigParser()
         config.add_section("general")
-        config.set("general", "api-name", "accounting-rest")
-        config.set("general", "crossdomain-origin", "*")
+        config.set("general", "CORS", False)
         config.set("general", "authentication", "ldap")
+
+        config.add_section("flask")
+        config.set("flask", "port", 8080)
+        config.set("flask", "debug", False)
+
         config.add_section("token")
         config.set("token", "secret", "super-secret-key-please-change")
         config.set("token", "name", "auth-token")
@@ -49,8 +53,11 @@ class DefaultConfig(object):
         config.add_section("accounting")
         config.set("accounting", "ldap_server", "ldaps://localhost:636")
         config.set("accounting", "ldap_user_loc", "uid")
+
+
+
         config.add_section("gunicorn")
-        config.set("gunicorn", "bind", "0.0.0.0:5000")
+        config.set("gunicorn", "bind", "0.0.0.0:{0}".format(config.get("flask", "port")))
         config.set("gunicorn", "pidfile", "/var/run/srg.pid")
         config.set("gunicorn", "keepalive", "650")
         config.set("gunicorn", "max_requests", "0")
@@ -94,6 +101,9 @@ class Config(object):
 
     def general(self):
         return self._fetch("general")
+
+    def flask(self):
+        return self._fetch("flask")
 
     def token(self):
         return self._fetch("token")

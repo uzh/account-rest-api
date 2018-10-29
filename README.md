@@ -13,7 +13,7 @@ The systemd installer also assumes that you have installed this package in the d
 NOTE: this is all still pre-alpha, only use as a reference for the time being
 ## Components
 
-* [Falcon](https://github.com/falconry/falcon) framework 
+* [Connexion](https://github.com/zalando/connexion) framework 
 * [gunicorn](https://github.com/benoitc/gunicorn) as the WSGI HTTP server and [meinheld](https://github.com/mopemope/meinheld) as the gunicorn worker
 * LDAP stuff  
 
@@ -24,14 +24,8 @@ Prerequisites:
 
 First install the system dependencies:
 ```bash
-sudo apt-get install libsasl2-dev python-dev python3-dev libldap2-dev libssl-dev python3-pip
+nothing here yet
 ```
-```bash
-sudo pip3 install click falcon
-```
-```bash
-sudo python3 setup.py install
-``` 
 
 ## Using
 For using the service we recommend that you install it:

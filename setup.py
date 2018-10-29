@@ -31,12 +31,11 @@ prerequisites = ["click",
                  "click-log",
                  "python-ldap",
                  "psutil",
-                 "falcon",
-                 "falcon_require_https",
                  "falcon_auth",
                  "sqlalchemy",
+                 "connexion",
+                 "flask-cors",
                  "jsonschema",
-                 "lxml",
                  "gunicorn"]
 test_requirements = ["pytest", "tox"]
 

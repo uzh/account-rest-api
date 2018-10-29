@@ -20,57 +20,45 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 import logging
 
-import falcon
-
-from falcon_require_https import RequireHTTPS
-from falcon_auth import FalconAuthMiddleware, BasicAuthBackend
-
-from api.middleware import JSONTranslator, CrossDomain
-from api.middleware.authentication import ldap_verify
-from api.middleware.database import SQLAlchemySessionManager, database
-from api.resources.account import AccountResources
-from api.resources.root import RootResources
-from api.resources.user import UserResources
+import connexion
+from flask_cors import CORS
 
 
-class AccountRestService(falcon.API):
+class AccountRestService(object):
     logger = logging.getLogger(__name__)
 
-    """Service wrapper for our Falcon API"""
-    def __init__(self, config, https_only=True, enable_auth=True, enable_validator=True):
-        database_engine = database(config.database().get("connection"))
-        middleware = [
-            CrossDomain(config.general().get("crossdomain-origin")),
-            JSONTranslator(),
-            SQLAlchemySessionManager(database_engine),
-        ]
-        if https_only:
-            self.logger.debug("enabling https")
-            middleware.append(RequireHTTPS())
-        if enable_auth:
-            auth_method = config.general().get("authentication")
-            self.logger.debug("configuring authentication ({0})".format(auth_method))
-            user_loader = lambda username, password: ldap_verify(config.ldap().get("server"),
-                                                                 config.ldap().get("user_loc"),
-                                                                 config.ldap().get("user_dn"),
-                                                                 config.ldap().get("base_dn"),
-                                                                 username,
-                                                                 password)
-            auth_backend = BasicAuthBackend(user_loader)
-            auth_middleware = FalconAuthMiddleware(auth_backend, exempt_routes=['/exempt'], exempt_methods=['HEAD'])
-            middleware.append(auth_middleware)
-
-        super(AccountRestService, self).__init__(middleware=middleware)
+    def __init__(self, config, https=True, auth=True, direct=False):
+        """
+        Service wrapper for our Gunicorn and Flask
+        :param config: our configuration object
+        :param https: enable/disable https
+        :param auth: enable/disable authorization
+        :param direct: direct start API (don't use Gunicorn)
+        """
         self.config = config
+        self.direct = direct
         self.logger.debug("initializing routes")
+        # Initialize framework
+        if direct:
+            self.app = connexion.FlaskApp(__name__, specification_dir='swagger/')
+        else:
+            self.app = connexion.FlaskApp(__name__,
+                                          port=self.config.flask.get('port'),
+                                          specification_dir='swagger/',
+                                          server='gunicorn')
         # Build routes
-        self.add_route("/", RootResources())
-        self.add_route("/accounts", AccountResources())
-        self.add_route("/users", UserResources())
+        self.app.add_api('api.yaml')
+        # add CORS support
+        if self.config.general().get("CORS"):
+            CORS(self.app.app)
 
     def start(self):
         """ A hook to when a Gunicorn worker calls run()."""
         self.logger.info("started accounting rest api")
+        if self.direct:
+            self.app.run(port=self.config.flask().get('port'), debug=self.config.flask().get('debug'))
+        else:
+            self.app.run(debug=self.config.flask().get('debug'))
 
     def stop(self, signal):
         """ A hook to when a Gunicorn worker starts shutting down. """
