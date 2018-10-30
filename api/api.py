@@ -8,9 +8,11 @@ ldap = AccountRestService.ldap
 def findAccounts():
     pass
 
+
 @ldap.login_required
 def addAccount(account):
     pass
+
 
 @ldap.login_required
 def updateAccount():
@@ -21,9 +23,11 @@ def updateAccount():
 def getProfile():
     pass
 
+
 @ldap.login_required
 def getAdminAccounts():
     pass
+
 
 @ldap.login_required
 def getAccounts():

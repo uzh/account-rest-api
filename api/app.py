@@ -22,7 +22,8 @@ import logging
 
 import connexion
 from flask_cors import CORS
-from flask_ldap import LDAP
+
+from api.ldap import LDAP
 
 
 class AccountRestService(object):
@@ -51,14 +52,11 @@ class AccountRestService(object):
                                           specification_dir='swagger/',
                                           server='gunicorn')
         if auth:
-            self.app.app.config['LDAP_HOST'] = self.config.ldap().get('host')
-            self.app.app.config['LDAP_PORT'] = self.config.ldap().get('port')
-            self.app.app.config['LDAP_SCHEMA'] = self.config.ldap().get('schema')
-            self.app.app.config['LDAP_DOMAIN'] = self.config.ldap().get('domain')
-            self.app.app.config['LDAP_SEARCH_BASE'] = self.config.general().get('search_base')
-            ldap = LDAP(self.app.app)
+            login_path = 'login'
+            self.app.app.config['LDAP_LOGIN_PATH'] = login_path
+            ldap = LDAP(self.app.app, self.config)
             self.app.app.secret_key = self.config.general().get("secret")
-            self.app.app.add_url_rule('/login', 'login', ldap.login, methods=['POST'])
+            self.app.app.add_url_rule("/{0}".format(login_path), login_path, ldap.login, methods=['GET', 'POST', 'PUT', 'DELETE'])
         # Build routes
         self.app.add_api('api.yaml')
         # add CORS support
