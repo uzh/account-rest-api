@@ -51,6 +51,7 @@ class DefaultConfig(object):
         config.set("ldap", "schema", "ldap")
         config.set("ldap", "domain", "example.com'")
         config.set("ldap", "search_base", "OU=Domain Users,DC=example,DC=com")
+        config.set("ldap", "administrator_groups", [])
         config.set("ldap", "required_groups", [])
 
         config.add_section("accounting")

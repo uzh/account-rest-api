@@ -13,7 +13,6 @@
   basePath: "/api"
   schemes:
     - "http"
-    - "https"
   consumes:
     - "application/json"
   produces:
@@ -22,9 +21,9 @@
     /accounts:
       get:
         description: Returns all accounts from the system that the user is associated with
-        operationId: api.findAccounts
+        operationId: api.find_accounts
         parameters:
-        - name: asAdmin
+        - name: admin
           in: query
           description: only return accounts where the user is administrator
           required: false
@@ -47,13 +46,11 @@
               type: "array"
               items:
                 $ref: "#/definitions/Account"
-          default:
-            description: Unexpected error
-            schema:
-              $ref: "#/definitions/Error"
+          404:
+            description: User does not exist
       put:
         description: Creates a new account, duplicates are not allowed
-        operationId: api.addAccount
+        operationId: api.add_account
         parameters:
         - name: account
           in: body
@@ -61,20 +58,18 @@
           required: true
           schema:
             $ref: "#/definitions/NewAccount"
-        produces:
-          - "application/json"
         responses:
-          "200":
+          201:
             description: Account response
             schema:
               $ref: "#/definitions/Account"
-          default:
-            description: unexpected error
-            schema:
-              $ref: "#/definitions/Error"
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during create
       post:
         description: Update an existing account
-        operationId: api.updateAccount
+        operationId: api.update_account
         parameters:
         - name: account
           in: body
@@ -82,69 +77,28 @@
           required: true
           schema:
             $ref: "#/definitions/Account"
-        produces:
-          - "application/json"
         responses:
-          "200":
+          201:
             description: Account response
             schema:
               $ref: "#/definitions/Account"
-          default:
-            description: unexpected error
-            schema:
-              $ref: "#/definitions/Error"
-
+          403:
+            description: User is not an account administrator
+          404:
+            description: User or account does not exist
+          409:
+            description: Conflicting state during update
     /me:
       get:
         description: The User Profile endpoint returns information about the user that has authorized with the application
-        operationId: api.getProfile
-        produces:
-          - "application/json"
+        operationId: api.get_profile
         responses:
-          "200":
+          200:
             description: Profile information for a user
             schema:
               $ref: '#/definitions/User'
-          default:
-            description: Unexpected error
-            schema:
-              $ref: '#/definitions/Error'
-    /admin:
-      get:
-        description: All accounts that the user is an admin of
-        operationId: api.getAdminAccounts
-        produces:
-          - "application/json"
-        responses:
-          "200":
-            description: Accounts you can administer
-            schema:
-              type: array
-              items:
-                $ref: '#/definitions/Account'
-          default:
-            description: Unexpected error
-            schema:
-              $ref: '#/definitions/Error'
-    /member:
-      get:
-        description: All accounts that the user is a member of
-        operationId: api.getAccounts
-        produces:
-          - "application/json"
-        responses:
-          "200":
-            description: You're a member of these accounts (including administrator priviledges)
-            schema:
-              type: array
-              items:
-                $ref: '#/definitions/Account'
-          default:
-            description: Unexpected error
-            schema:
-              $ref: '#/definitions/Error'
-
-
+          404:
+            description: User not found
 
   definitions:
     Account:
@@ -161,7 +115,7 @@
       required:
         - "name"
         - "active"
-        - "principleInvestigator"
+        - "principle_investigator"
         - "faculty"
         - "department"
       properties:
@@ -179,7 +133,7 @@
       type: "object"
       required:
         - "id"
-        - "ldapName"
+        - "ldap_name"
       properties:
         id:
           type: "integer"
@@ -200,12 +154,3 @@
 #          type: "string"
 #        description:
 #          type: "string"
-    Error:
-      properties:
-        code:
-          type: integer
-          format: int32
-        message:
-          type: string
-        fields:
-          type: string

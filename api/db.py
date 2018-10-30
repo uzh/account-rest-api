@@ -45,29 +45,29 @@ def init_db(uri, persist=True):
     return db_session
 
 
-class Account(AccountingBase):
+class Account(Base):
     __tablename__ = "accounts"
     name = Column(String(100), unique=True)
     active = Column(Boolean)
-    principleInvestigator = Column(String(255))
+    principle_investigator = Column(String(255))
     faculty = Column(String(100))
     department = Column(String(100))
 
     users = association_proxy("account_users", "user")
 
 
-class User(AccountingBase):
+class User(Base):
     __tablename__ = "users"
-    ldapName = Column(String(100))
+    ldap_name = Column(String(100), unique=True)
 
     accounts = association_proxy("account_users", "account")
 
 
-class AccountUser(AccountingBase):
+class AccountUser(Base):
     __tablename__ = 'account_users'
 
+    account_id = Column(Integer, ForeignKey('account.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
-    community_id = Column(Integer, ForeignKey('community.id'))
     admin = Column(Boolean, nullable=False)
 
     account = relationship(Account, backref="account_users")

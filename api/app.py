@@ -24,6 +24,7 @@ import connexion
 from flask_cors import CORS
 
 from api.ldap import LDAP
+from api.db import init_db
 
 
 class AccountRestService(object):
@@ -31,36 +32,38 @@ class AccountRestService(object):
 
     ldap = None
 
-    def __init__(self, config, https=True, auth=True, direct=False):
+    def __init__(self, config, auth=True, direct=False):
         """
         Service wrapper for our Gunicorn and Flask
         :param config: our configuration object
-        :param https: enable/disable https
         :param auth: enable/disable authorization
         :param direct: direct start API (don't use Gunicorn)
         """
         global ldap
         self.config = config
         self.direct = direct
-        self.logger.debug("initializing routes")
-        # Initialize framework
+        self.logger.debug("initializing database")
+        init_db(self.config.database().get("connection"))
         if direct:
+            self.logger.info("direct initialization requested")
             self.app = connexion.FlaskApp(__name__, specification_dir='swagger/')
         else:
+            self.logger.info("initializing gunicorn application")
             self.app = connexion.FlaskApp(__name__,
                                           port=self.config.general.get('port'),
                                           specification_dir='swagger/',
                                           server='gunicorn')
         if auth:
+            self.logger.debug("initializing authorization")
             login_path = 'login'
             self.app.app.config['LDAP_LOGIN_PATH'] = login_path
             ldap = LDAP(self.app.app, self.config)
             self.app.app.secret_key = self.config.general().get("secret")
             self.app.app.add_url_rule("/{0}".format(login_path), login_path, ldap.login, methods=['GET', 'POST', 'PUT', 'DELETE'])
-        # Build routes
+        self.logger.debug("initializing routes")
         self.app.add_api('api.yaml')
-        # add CORS support
         if self.config.general().get('CORS'):
+            self.logger.debug("initializing CORS")
             CORS(self.app.app)
 
     def start(self):

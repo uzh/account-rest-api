@@ -31,10 +31,11 @@ class LDAP(object):
     ]
 
     def __init__(self, app, config):
-        self.uri = "{0}://{1}:{2}".format(config.ldap().get("schema"), config.ldap().get("host"), config.ldap().get("schema"))
-        self.domain = config.ldap().get("domain")
-        self.search_base = config.ldap().get("search_base")
-        self.required_groups = config.ldap().get("required_groups")
+        self.uri = "{0}://{1}:{2}".format(config.ldap().get('schema'), config.ldap().get('host'), config.ldap().get('schema'))
+        self.domain = config.ldap().get('domain')
+        self.search_base = config.ldap().get('search_base')
+        self.administrator_groups = config.ldap().get('administrator_groups')
+        self.required_groups = config.ldap().get('required_groups')
         if hasattr(app, 'teardown_appcontext'):
             app.teardown_appcontext(self.teardown)
         else:
@@ -90,6 +91,9 @@ class LDAP(object):
                 if group not in self.mu.get('memberOf'):
                     self.logger.warning("{0} authenticated but not authorized".format(user))
                     return False
+            for admin_group in self.administrator_groups:
+                if admin_group in self.mu.get('memberOf'):
+                    session['admin'] = True
             session['username'] = username
             return True
         except Exception as e:

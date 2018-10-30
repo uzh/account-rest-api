@@ -69,12 +69,11 @@ def check_pid(pid_file):
 @click.group()
 @click.option("-c", "--config-file", default="/etc/accounting-rest/api.confg", help="Specify configuration file path (creates if not exists)")
 @click.option("--spew/--no-spew", default=False, help="spew all messages, really noisy (default --no-spew)")
-@click.option("--https/--no-https", default=True, help="disable https (default --https)")
 @click.option("--auth/--no-auth", default=True, help="disable authentication (default --auth)")
 @click.option("--direct", is_flag=True, help="don't use gunicorn wrapper")
 @click.pass_context
 @click_log.simple_verbosity_option(logger)
-def cli(ctx, config_file, spew, https, auth, direct):
+def cli(ctx, config_file, spew, auth, direct):
     """
     This CLI allows you to manage the Accounting Rest API, this service will run in the background.
     The service is wrapped by gunicorn, and these commands allow you to control the gunicorn master process.
@@ -84,14 +83,13 @@ def cli(ctx, config_file, spew, https, auth, direct):
     :param ctx: our context
     :param config_file: our configuration file
     :param spew: very noisy debugging
-    :param https: enable/disable https
     :param auth: enable/disable authentication mechanism
     :param direct: don't user Gunicorn
     """
     ctx.obj = {}
 
     def set_level(level):
-        for l in "sqlalchemy", "connexion", "gunicorn", "meinheld", "python-ldap":
+        for l in "sqlalchemy", "connexion", "gunicorn", "meinheld":
             li = logging.getLogger(l)
             if li:
                 li.setLevel(level)
@@ -111,7 +109,7 @@ def cli(ctx, config_file, spew, https, auth, direct):
     config_file = Config(config_file)
 
     ctx.obj["CONFIG"] = config_file
-    ctx.obj["SRV"] = AccountRestService(config_file, https=https, auth=auth, direct=direct)
+    ctx.obj["SRV"] = AccountRestService(config_file, auth=auth, direct=direct)
     gu_config = config_file.gunicorn()
     gu_config["spew"] = spew
     if not direct:
