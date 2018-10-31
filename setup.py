@@ -25,7 +25,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-version = "0.1"
+version = "0.2"
 
 requirements = ["click", "click-log", "psutil", "sqlalchemy", "connexion", "flask-cors", "gunicorn"]
 test_requirements = ["pytest", "tox"]
