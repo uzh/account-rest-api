@@ -24,6 +24,7 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
 from db.handler import Base
+from db.user import User
 
 
 class Account(Base):

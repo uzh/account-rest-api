@@ -31,10 +31,9 @@ from db.handler import db_session
 from db.user import User
 
 logger = logging.getLogger('api.account')
-ldap = AccountRestService.ldap
 
 
-@ldap.login_required
+@AccountRestService.ldap.login_required
 def find_accounts(admin=False, limit=20):
     u = db_session.query(User)
     user = u.filter(User.ldap_name == session['username']).one_or_none()
@@ -49,7 +48,7 @@ def find_accounts(admin=False, limit=20):
         return [a.account.dump() for a in accounts][:limit], 200
 
 
-@ldap.login_required
+@AccountRestService.ldap.login_required
 def add_account(account):
     if not session['admin']:
         return NoContent, 401
@@ -64,7 +63,7 @@ def add_account(account):
         return NoContent, 500
 
 
-@ldap.login_required
+@AccountRestService.ldap.login_required
 def update_account(account):
     u = db_session.query(User)
     user = u.filter(User.ldap_name == session['username']).one_or_none()

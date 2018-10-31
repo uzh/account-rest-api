@@ -32,10 +32,10 @@ class DefaultConfig(object):
     def create():
         config = configparser.ConfigParser()
         config.add_section("general")
-        config.set("general", "CORS", False)
+        config.set("general", "CORS", "False")
         config.set("general", "secret", "change-me-please")
-        config.set("general", "port", 8080)
-        config.set("general", "debug", False)
+        config.set("general", "port", "8080")
+        config.set("general", "debug", "False")
 
         # config.add_section("token")
         # config.set("token", "secret", "super-secret-key-please-change")
@@ -47,12 +47,12 @@ class DefaultConfig(object):
 
         config.add_section("ldap")
         config.set("ldap", "host", "localhost")
-        config.set("ldap", "port", 389)
+        config.set("ldap", "port", "389")
         config.set("ldap", "schema", "ldap")
         config.set("ldap", "domain", "example.com'")
         config.set("ldap", "search_base", "OU=Domain Users,DC=example,DC=com")
-        config.set("ldap", "administrator_groups", [])
-        config.set("ldap", "required_groups", [])
+        config.set("ldap", "administrator_groups", "")
+        config.set("ldap", "required_groups", "")
 
         config.add_section("accounting")
         config.set("accounting", "ldap_server", "ldaps://localhost:636")

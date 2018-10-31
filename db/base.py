@@ -20,7 +20,8 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 from datetime import datetime
-from uuid import UUID, uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, event
 
@@ -45,5 +46,5 @@ class AccountingBase(object):
         target.updated_at = datetime.now()
 
 
-event.listen(AccountingBase, "before_insert", AccountingBase.insert)
-event.listen(AccountingBase, "before_update", AccountingBase.update)
+#event.listen(AccountingBase, "before_insert", AccountingBase.insert)
+#event.listen(AccountingBase, "before_update", AccountingBase.update)

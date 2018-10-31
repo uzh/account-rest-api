@@ -39,7 +39,6 @@ class AccountRestService(object):
         :param auth: enable/disable authorization
         :param direct: direct start API (don't use Gunicorn)
         """
-        global ldap
         self.config = config
         self.direct = direct
         self.logger.debug("initializing database")
@@ -57,9 +56,11 @@ class AccountRestService(object):
             self.logger.debug("initializing authorization")
             login_path = 'login'
             self.app.app.config['LDAP_LOGIN_PATH'] = login_path
-            ldap = LDAP(self.app.app, self.config)
+            AccountRestService.ldap = LDAP(self.app.app, self.config)
             self.app.app.secret_key = self.config.general().get("secret")
-            self.app.app.add_url_rule("/{0}".format(login_path), login_path, ldap.login, methods=['POST'])
+            self.app.app.add_url_rule("/{0}".format(login_path), login_path, AccountRestService.ldap.login, methods=['POST'])
+        else:
+            AccountRestService.ldap = dict(login_required=False)
         self.logger.debug("initializing routes")
         self.app.add_api('api.yaml')
         if self.config.general().get('CORS'):

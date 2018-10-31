@@ -34,14 +34,14 @@ logger = logging.getLogger('api.account')
 ldap = AccountRestService.ldap
 
 
-@ldap.login_required
+@AccountRestService.ldap.login_required
 def get_user():
     u = db_session.query(User)
     user = u.filter(User.ldap_name == session['username']).one_or_none()
     return (user.dump(), 200) if user else ("User doesn't exist", 404)
 
 
-@ldap.login_required
+@AccountRestService.ldap.login_required
 def add_user(user):
     if not session['admin']:
         return NoContent, 401
