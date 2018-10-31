@@ -19,25 +19,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import pytest
+from sqlalchemy import Column, String
+from sqlalchemy.ext.associationproxy import association_proxy
 
-from falcon import testing
-
-# Depending on your testing strategy and how your application
-# manages state, you may be able to broaden the fixture scope
-# beyond the default 'function' scope used in this example.
-from api import AccountRestService, Config
+from db.handler import Base
 
 
-@pytest.fixture()
-def client():
-    # for testing we inject a temporary database, disable https and disable authorization
-    config = Config(create=False)
-    config.update("database", "connection", "sqlite://")
-    return testing.TestClient(AccountRestService(config, https_only=False, enable_auth=False))
+class User(Base):
+    __tablename__ = "users"
+    ldap_name = Column(String(100), unique=True)
 
-
-def test_get_message(client):
-    expected = {"message": "Hello, World!"}
-    result = client.simulate_get('/')
-    assert result.json == expected
+    accounts = association_proxy("account_users", "account")

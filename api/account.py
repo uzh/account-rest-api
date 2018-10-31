@@ -1,13 +1,36 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-#
+#
+#
+# Copyright (C) 2018 University of Zurich. All rights reserved.
+#
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
 import logging
 
 from connexion import NoContent
 from flask import session
-from sqlalchemy.dialects.oracle.zxjdbc import SQLException
+from sqlalchemy.exc import SQLAlchemyError
 
-from api.db import db_session, Account, User, AccountUser
-from api.app import AccountRestService
+from app import AccountRestService
+from db.account import AccountUser, Account
+from db.handler import db_session
+from db.user import User
 
-logger = logging.getLogger('api')
+logger = logging.getLogger('api.account')
 ldap = AccountRestService.ldap
 
 
@@ -36,7 +59,7 @@ def add_account(account):
         db_session.commit()
         db_session.refresh(a)
         return a.dump(), 201
-    except SQLException:
+    except SQLAlchemyError:
         logger.exception("error while creating account")
         return NoContent, 500
 
@@ -65,13 +88,6 @@ def update_account(account):
         db_session.commit()
         db_session.refresh(dba)
         return dba.dump(), 201
-    except SQLException:
+    except SQLAlchemyError:
         logger.exception("error while updating account")
         return NoContent, 500
-
-
-@ldap.login_required
-def get_profile():
-    u = db_session.query(User)
-    user = u.filter(User.ldap_name == session['username']).one_or_none()
-    return (user.dump(), 200) if user else ("User doesn't exist", 404)

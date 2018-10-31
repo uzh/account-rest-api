@@ -19,24 +19,22 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import pytest
-from flask import session
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
 
-from api.account import add_account
-from db.account import Account
-from db.handler import init_db
+from db.base import AccountingBase
 
-
-@pytest.fixture()
-def initialize():
-    init_db("sqlite://")
+Base = declarative_base(cls=AccountingBase)
+db_session = None
 
 
-def test_admin_can_create_account():
-    session['admin'] = True
-    result, code = add_account(Account(name='test', principle_investigator='test_pi'))
-    assert code == 201
-    assert result is not None
-    assert result.id is not None
-    assert result.name == 'test'
-
+def init_db(uri, persist=True):
+    global db_session
+    engine = create_engine(uri, convert_unicode=True)
+    db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+    Base.query = db_session.query_property()
+    if not persist:
+        Base.metadata.drop_all(engine)
+    Base.metadata.create_all(bind=engine)
+    return db_session

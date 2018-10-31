@@ -11,8 +11,6 @@
       name: "GPLv3"
   host: "accounting.s3it.uzh.ch"
   basePath: "/api"
-  schemes:
-    - "http"
   consumes:
     - "application/json"
   produces:
@@ -21,24 +19,23 @@
     /accounts:
       get:
         description: Returns all accounts from the system that the user is associated with
-        operationId: api.find_accounts
+        x-swagger-router-controller: api.account
+        operationId: find_accounts
         parameters:
-        - name: admin
-          in: query
-          description: only return accounts where the user is administrator
-          required: false
-          style: form
-          schema:
-            type: boolean
-        - name: limit
-          in: query
-          description: maximum number of results to return
-          required: false
-          schema:
-            type: integer
-          format: int32
-        produces:
-          - "application/json"
+          - name: admin
+            in: query
+            description: only return accounts where the user is administrator
+            required: false
+            style: form
+            schema:
+              type: boolean
+          - name: limit
+            in: query
+            description: maximum number of results to return
+            required: false
+            schema:
+              type: integer
+            format: int32
         responses:
           "200":
             description: A list of accounts the user is associated with
@@ -50,14 +47,15 @@
             description: User does not exist
       put:
         description: Creates a new account, duplicates are not allowed
-        operationId: api.add_account
+        x-swagger-router-controller: api.account
+        operationId: add_account
         parameters:
-        - name: account
-          in: body
-          description: Account to add to the store
-          required: true
-          schema:
-            $ref: "#/definitions/NewAccount"
+          - name: account
+            in: body
+            description: Account to add to the store
+            required: true
+            schema:
+              $ref: "#/definitions/NewAccount"
         responses:
           201:
             description: Account response
@@ -69,14 +67,15 @@
             description: Conflict during create
       post:
         description: Update an existing account
-        operationId: api.update_account
+        x-swagger-router-controller: api.account
+        operationId: update_account
         parameters:
-        - name: account
-          in: body
-          description: Account to be updated
-          required: true
-          schema:
-            $ref: "#/definitions/Account"
+          - name: account
+            in: body
+            description: Account to be updated
+            required: true
+            schema:
+              $ref: "#/definitions/Account"
         responses:
           201:
             description: Account response
@@ -88,10 +87,11 @@
             description: User or account does not exist
           409:
             description: Conflicting state during update
-    /me:
+    /user:
       get:
-        description: The User Profile endpoint returns information about the user that has authorized with the application
-        operationId: api.get_profile
+        description: Return user profile
+        x-swagger-router-controller: api.user
+        operationId: get_user
         responses:
           200:
             description: Profile information for a user
@@ -99,47 +99,77 @@
               $ref: '#/definitions/User'
           404:
             description: User not found
+      post:
+        description: Create user profile
+        x-swagger-router-controller: api.user
+        operationId: add_user
+        parameters:
+          - name: user
+            in: body
+            description: User to be added
+            required: true
+            schema:
+              $ref: "#/definitions/NewUser"
+        responses:
+          200:
+            description: Profile information for a user
+            schema:
+              $ref: '#/definitions/User'
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during create
 
   definitions:
     Account:
       allOf:
         - $ref: "#/definitions/NewAccount"
         - required:
-          - id
-        properties:
-          id:
-            type: integer
-            format: int64
+            - id
+          properties:
+            id:
+              type: string
+              maxLength: 20
+              readOnly: true
     NewAccount:
       type: "object"
       required:
         - "name"
         - "active"
         - "principle_investigator"
-        - "faculty"
-        - "department"
       properties:
         active:
           type: "boolean"
         name:
           type: "string"
-        principleInvestigator:
+        principle_investigator:
           type: "string"
         faculty:
           type: "string"
         department:
           type: "string"
     User:
+      allOf:
+        - $ref: "#/definitions/NewUser"
+        - required:
+            - id
+          properties:
+            id:
+              type: string
+              maxLength: 20
+              readOnly: true
+    NewUser:
       type: "object"
       required:
-        - "id"
         - "ldap_name"
+        - "full_name"
       properties:
-        id:
-          type: "integer"
-          format: "int64"
-        ldapName:
+        ldap_name:
           type: "string"
+        full_name:
+          type: "string"
+
+
 #    resource:
 #      type: "object"
 #      required:

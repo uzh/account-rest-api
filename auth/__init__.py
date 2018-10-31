@@ -19,24 +19,4 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import pytest
-from flask import session
-
-from api.account import add_account
-from db.account import Account
-from db.handler import init_db
-
-
-@pytest.fixture()
-def initialize():
-    init_db("sqlite://")
-
-
-def test_admin_can_create_account():
-    session['admin'] = True
-    result, code = add_account(Account(name='test', principle_investigator='test_pi'))
-    assert code == 201
-    assert result is not None
-    assert result.id is not None
-    assert result.name == 'test'
-
+import auth.ldap

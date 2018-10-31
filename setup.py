@@ -27,16 +27,7 @@ from setuptools import setup
 
 version = "0.1"
 
-prerequisites = ["click",
-                 "click-log",
-                 "python-ldap",
-                 "psutil",
-                 "falcon_auth",
-                 "sqlalchemy",
-                 "connexion",
-                 "flask-cors",
-                 "jsonschema",
-                 "gunicorn"]
+requirements = ["click", "click-log", "psutil", "sqlalchemy", "connexion", "flask-cors", "gunicorn"]
 test_requirements = ["pytest", "tox"]
 
 if sys.argv[-1] == "tag":
@@ -80,7 +71,7 @@ if sys.argv[-1] == "install":
     os.system("systemctl daemon-reload")
 
 try:
-    modules = map(__import__, prerequisites)
+    modules = map(__import__, requirements)
 except ImportError as e:
     raise ImportError("{0} is not installed, please install it using pip.".format(
         str(e).replace("No module named ", ""))
@@ -89,36 +80,25 @@ except ImportError as e:
 
 setup(name="accounting-rest",
       version=version,
-      description="LDAP Accounting Rest API",
+      description="Accounting Rest API",
       long_description=open("README.md").read(),
       author="Pim Witlox",
       author_email="pim.witlox@uzh.ch",
-      url="https://github.com/uzh/ldap-accounting-rest",
+      url="https://github.com/uzh/accounting-rest-api",
       license="GPLv3",
       entry_points={
           "console_scripts": [
-              "accounting-rest = api.__init__:cli",
+              "accounting-rest = __init__:cli",
           ]
       },
       packages=["api"],
-      install_requires=[
-          "falcon-require-https",
-          "falcon-auth",
-          "python-ldap",
-          "pamela",
-          "jsonschema",
-          "ujson",
-          "gunicorn",
-          "meinheld",
-          "psutil",
-          "click-log",
-      ] + prerequisites,
+      install_requires=requirements,
       python_requires=">=3.4",
-      keywords="Web, Python, Python3, Refactoring, REST, Framework, RPC",
+      keywords="Web, Python, Python3, REST",
       project_urls={
-          "Documentation": "https://ldap-accounting-rest-api.readthedocs.io/en/latest/",
-          "Source": "https://github.com/uzh/ldap-accounting-rest/",
-          "Tracker": "https://github.com/uzh/ldap-accounting-rest/issues",
+          "Documentation": "https://accounting-rest-api.readthedocs.io/en/latest/",
+          "Source": "https://github.com/uzh/accounting-rest-api/",
+          "Tracker": "https://github.com/uzh/accounting-rest-api/issues",
       },
       test_suite="tests",
       tests_require=test_requirements,

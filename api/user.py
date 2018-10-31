@@ -19,24 +19,38 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import pytest
+import logging
+
+from connexion import NoContent
 from flask import session
+from sqlalchemy.exc import SQLAlchemyError
 
-from api.account import add_account
-from db.account import Account
-from db.handler import init_db
-
-
-@pytest.fixture()
-def initialize():
-    init_db("sqlite://")
+from app import AccountRestService
+from db.handler import db_session
+from db.user import User
 
 
-def test_admin_can_create_account():
-    session['admin'] = True
-    result, code = add_account(Account(name='test', principle_investigator='test_pi'))
-    assert code == 201
-    assert result is not None
-    assert result.id is not None
-    assert result.name == 'test'
+logger = logging.getLogger('api.account')
+ldap = AccountRestService.ldap
 
+
+@ldap.login_required
+def get_user():
+    u = db_session.query(User)
+    user = u.filter(User.ldap_name == session['username']).one_or_none()
+    return (user.dump(), 200) if user else ("User doesn't exist", 404)
+
+
+@ldap.login_required
+def add_user(user):
+    if not session['admin']:
+        return NoContent, 401
+    u = User(**user)
+    try:
+        db_session.add(u)
+        db_session.commit()
+        db_session.refresh(u)
+        return u.dump(), 201
+    except SQLAlchemyError:
+        logger.exception("error while creating account")
+        return NoContent, 500
