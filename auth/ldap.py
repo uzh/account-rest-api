@@ -24,7 +24,8 @@ import ldap
 
 from functools import wraps
 
-from flask import session, request, redirect, abort, current_app, url_for
+from connexion import NoContent
+from flask import session, request, redirect, abort
 
 try:
     from flask import _app_ctx_stack as stack
@@ -140,10 +141,10 @@ class LDAP(object):
 
 class LdapAuth(object):
     @staticmethod
-    def login_required(f):
-        @wraps(f)
+    def login_required(func):
+        @wraps(func)
         def decorated(*args, **kwargs):
             if 'username' in session:
-                return f(*args, **kwargs)
-            return redirect(url_for(current_app.config['LDAP_LOGIN_PATH']))
+                return func(*args, **kwargs)
+            return NoContent, 401
         return decorated

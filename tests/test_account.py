@@ -42,7 +42,6 @@ from unittest import mock
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
-from flask import json
 
 from config import Config
 from app import AccountRestService
@@ -59,10 +58,8 @@ def client():
 
 @pytest.mark.run(order=1)
 def test_add_account(client):
-    # with client.session_transaction() as session:
-    #     session['admin'] = True
-    lg = client.post('/api/accounts',
-                     data=json.dumps(dict(name='test', principle_investigator='test_pi', active=True)),
-                     content_type='application/json')
+    with client.session_transaction() as session:
+        session['admin'] = True
+    lg = client.post('/api/accounts', json={'name': 'test', 'principle_investigator': 'test_pi', 'active': True})
     assert lg.status_code == 201
 
