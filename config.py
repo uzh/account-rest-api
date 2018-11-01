@@ -36,6 +36,7 @@ class DefaultConfig(object):
         config.set("general", "secret", "change-me-please")
         config.set("general", "port", "8080")
         config.set("general", "debug", "False")
+        config.set("general", "auth", "ldap")
 
         # config.add_section("token")
         # config.set("token", "secret", "super-secret-key-please-change")

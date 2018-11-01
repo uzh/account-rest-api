@@ -20,7 +20,6 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 from sqlalchemy import Column, String
-from sqlalchemy.ext.associationproxy import association_proxy
 
 from db.handler import Base
 
@@ -28,5 +27,4 @@ from db.handler import Base
 class User(Base):
     __tablename__ = "users"
     ldap_name = Column(String(100), unique=True)
-
-    accounts = association_proxy("account_users", "account")
+    full_name = Column(String(255))

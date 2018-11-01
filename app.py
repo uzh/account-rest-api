@@ -18,19 +18,22 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
 import logging
 
 import connexion
 from flask_cors import CORS
 
+from auth import NoAuth
 from auth.ldap import LDAP
 from db.handler import init_db
 
 
 class AccountRestService(object):
+
     logger = logging.getLogger(__name__)
 
-    ldap = None
+    auth = None
 
     def __init__(self, config, auth=True, direct=False):
         """
@@ -52,15 +55,19 @@ class AccountRestService(object):
                                           port=self.config.general.get('port'),
                                           specification_dir='swagger/',
                                           server='gunicorn')
-        if auth:
-            self.logger.debug("initializing authorization")
+        self.app.app.secret_key = self.config.general().get("secret")
+        if auth and self.config.general().get("auth"):
+            self.logger.info("initializing LDAP authorization")
             login_path = 'login'
             self.app.app.config['LDAP_LOGIN_PATH'] = login_path
-            AccountRestService.ldap = LDAP(self.app.app, self.config)
-            self.app.app.secret_key = self.config.general().get("secret")
-            self.app.app.add_url_rule("/{0}".format(login_path), login_path, AccountRestService.ldap.login, methods=['POST'])
+            AccountRestService.auth = LDAP(self.app.app, self.config)
+            self.app.app.add_url_rule("/{0}".format(login_path),
+                                      login_path,
+                                      AccountRestService.auth.login,
+                                      methods=['POST'])
         else:
-            AccountRestService.ldap = dict(login_required=False)
+            self.logger.warning("authorization disabled")
+            AccountRestService.auth = NoAuth()
         self.logger.debug("initializing routes")
         self.app.add_api('api.yaml')
         if self.config.general().get('CORS'):

@@ -26,15 +26,12 @@
             in: query
             description: only return accounts where the user is administrator
             required: false
-            style: form
-            schema:
-              type: boolean
+            type: boolean
           - name: limit
             in: query
             description: maximum number of results to return
             required: false
-            schema:
-              type: integer
+            type: integer
             format: int32
         responses:
           "200":
@@ -45,10 +42,30 @@
                 $ref: "#/definitions/Account"
           404:
             description: User does not exist
+      post:
+        description: Update an existing account
+        x-swagger-router-controller: api.account
+        operationId: add_account
+        parameters:
+          - name: account
+            in: body
+            description: Account to be updated
+            required: true
+            schema:
+              $ref: "#/definitions/NewAccount"
+        responses:
+          201:
+            description: Account response
+            schema:
+              $ref: "#/definitions/Account"
+          403:
+            description: User is not an account administrator
+          500:
+            description: Conflicting state during update
       put:
         description: Creates a new account, duplicates are not allowed
         x-swagger-router-controller: api.account
-        operationId: add_account
+        operationId: update_account
         parameters:
           - name: account
             in: body
@@ -65,28 +82,6 @@
             description: Not authorized
           500:
             description: Conflict during create
-      post:
-        description: Update an existing account
-        x-swagger-router-controller: api.account
-        operationId: update_account
-        parameters:
-          - name: account
-            in: body
-            description: Account to be updated
-            required: true
-            schema:
-              $ref: "#/definitions/Account"
-        responses:
-          201:
-            description: Account response
-            schema:
-              $ref: "#/definitions/Account"
-          403:
-            description: User is not an account administrator
-          404:
-            description: User or account does not exist
-          409:
-            description: Conflicting state during update
     /user:
       get:
         description: Return user profile
@@ -138,10 +133,10 @@
         - "active"
         - "principle_investigator"
       properties:
-        active:
-          type: "boolean"
         name:
           type: "string"
+        active:
+          type: "boolean"
         principle_investigator:
           type: "string"
         faculty:

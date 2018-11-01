@@ -138,14 +138,12 @@ class LDAP(object):
             abort(404)
 
 
-def login_required(f):
-    """
-    Decorator for views that require login.
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'username' in session:
-            return f(*args, **kwargs)
-        return redirect(url_for(current_app.config['LDAP_LOGIN_PATH']))
-
-    return decorated
+class LdapAuth(object):
+    @staticmethod
+    def login_required(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if 'username' in session:
+                return f(*args, **kwargs)
+            return redirect(url_for(current_app.config['LDAP_LOGIN_PATH']))
+        return decorated

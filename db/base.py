@@ -20,14 +20,13 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 from datetime import datetime
-from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, event
+from sqlalchemy import Column, DateTime, String
 
 
 class AccountingBase(object):
-    id = Column(UUID, default=str(uuid4()), primary_key=True)
+    id = Column(String, default=str(uuid4()), primary_key=True)
     created_at = Column(DateTime(), default=datetime.now())
     updated_at = Column(DateTime(), onupdate=datetime.now())
 
@@ -37,14 +36,3 @@ class AccountingBase(object):
     def dump(self):
         return dict([(k, v) for k, v in vars(self).items() if not k.startswith("_")])
 
-    @staticmethod
-    def insert(mapper, connection, target):
-        target.created_at = datetime.now()
-
-    @staticmethod
-    def update(mapper, connection, target):
-        target.updated_at = datetime.now()
-
-
-#event.listen(AccountingBase, "before_insert", AccountingBase.insert)
-#event.listen(AccountingBase, "before_update", AccountingBase.update)

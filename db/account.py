@@ -35,15 +35,17 @@ class Account(Base):
     faculty = Column(String(100))
     department = Column(String(100))
 
-    users = association_proxy("account_users", "user")
-
 
 class AccountUser(Base):
     __tablename__ = 'account_users'
 
-    account_id = Column(Integer, ForeignKey('account.id'))
-    user_id = Column(Integer, ForeignKey('user.id'))
+    account_id = Column(String, ForeignKey('accounts.id'))
+    user_id = Column(String, ForeignKey('users.id'))
     admin = Column(Boolean, nullable=False)
 
     account = relationship(Account, backref="account_users")
     user = relationship(User, backref="account_users")
+
+
+Account.users = association_proxy("account_users", "users")
+User.accounts = association_proxy("account_users", "accounts")

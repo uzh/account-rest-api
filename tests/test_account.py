@@ -42,12 +42,10 @@ from unittest import mock
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
-from flask import session, json
+from flask import json
 
 from config import Config
 from app import AccountRestService
-
-from db.account import Account
 
 
 @pytest.fixture(scope='module')
@@ -55,12 +53,16 @@ def client():
     config = Config(create=False)
     config.update("database", "connection", "sqlite://")
     ars = AccountRestService(config, auth=False, direct=True)
-    with ars.app.test_client() as c:
+    with ars.app.app.test_client() as c:
         yield c
 
 
 @pytest.mark.run(order=1)
-def test_add_account_as_admin(client):
-    session['admin'] = True
-    lg = client.post('/api/v1/accounts', json.dumps(Account(name='test', principle_investigator='test_pi')))
+def test_add_account(client):
+    # with client.session_transaction() as session:
+    #     session['admin'] = True
+    lg = client.post('/api/accounts',
+                     data=json.dumps(dict(name='test', principle_investigator='test_pi', active=True)),
+                     content_type='application/json')
     assert lg.status_code == 201
+
