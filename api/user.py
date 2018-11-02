@@ -43,7 +43,7 @@ def get_user():
 
 @auth.login_required
 def add_user(user):
-    if not session['admin']:
+    if 'admin' not in session:
         return NoContent, 401
     u = User(**user)
     try:

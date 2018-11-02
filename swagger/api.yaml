@@ -34,7 +34,7 @@
             type: integer
             format: int32
         responses:
-          "200":
+          200:
             description: A list of accounts the user is associated with
             schema:
               type: "array"
@@ -43,7 +43,7 @@
           404:
             description: User does not exist
       post:
-        description: Update an existing account
+        description: Creates a new account, duplicates are not allowed
         x-swagger-router-controller: api.account
         operationId: add_account
         parameters:
@@ -63,7 +63,7 @@
           500:
             description: Conflicting state during update
       put:
-        description: Creates a new account, duplicates are not allowed
+        description: Update an existing account
         x-swagger-router-controller: api.account
         operationId: update_account
         parameters:
@@ -82,6 +82,69 @@
             description: Not authorized
           500:
             description: Conflict during create
+    /accountUsers/{id}:
+      get:
+        description: Return users of an account
+        x-swagger-router-controller: api.account
+        operationId: get_account_users
+        parameters:
+          - $ref: '#/parameters/id'
+        responses:
+          200:
+            description: The Account
+            schema:
+              type: "array"
+              items:
+                $ref: '#/definitions/User'
+          404:
+            description: Account does not exist
+      post:
+        description: Add user to an account
+        x-swagger-router-controller: api.account
+        operationId: add_account_user
+        parameters:
+          - $ref: '#/parameters/id'
+          - name: user
+            in: body
+            description: Account to be updated
+            required: true
+            schema:
+              $ref: "#/definitions/User"
+          - name: admin
+            in: query
+            description: Mark user as account admin
+            required: false
+            type: boolean
+        responses:
+          201:
+            description: The user has been added
+          401:
+            description: Not authorized
+          404:
+            description: Account does not exist
+          500:
+            description: Conflict during add
+      delete:
+        description: Remove user from an account
+        x-swagger-router-controller: api.account
+        operationId: remove_account_user
+        parameters:
+        - $ref: '#/parameters/id'
+        - name: user
+          in: body
+          description: User to be removed
+          required: true
+          schema:
+            $ref: "#/definitions/User"
+        responses:
+          200:
+            description: The user has been removed
+          401:
+            description: Not authorized
+          404:
+            description: Account does not exist
+          500:
+            description: Conflict during remove
     /user:
       get:
         description: Return user profile
@@ -114,7 +177,14 @@
             description: Not authorized
           500:
             description: Conflict during create
-
+  parameters:
+    id:
+      name: id
+      description: The unique identifer for an Object (i.e. User, Account, etc)
+      in: path
+      type: string
+      required: true
+      pattern: "^[a-zA-Z0-9-]+$"
   definitions:
     Account:
       allOf:
@@ -163,19 +233,3 @@
           type: "string"
         full_name:
           type: "string"
-
-
-#    resource:
-#      type: "object"
-#      required:
-#        - "id"
-#        - "name"
-#        - "description"
-#      properties:
-#        id:
-#          type: "integer"
-#          format: "int64"
-#        name:
-#          type: "string"
-#        description:
-#          type: "string"

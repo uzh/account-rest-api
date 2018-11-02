@@ -42,6 +42,7 @@ from unittest import mock
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
+from flask import json
 
 from config import Config
 from app import AccountRestService
@@ -56,10 +57,18 @@ def client():
         yield c
 
 
-@pytest.mark.run(order=1)
-def test_add_account(client):
+def test_add_account_fails_for_non_admin(client):
+    lg = client.post('/api/accounts', json={'name': 'test', 'principle_investigator': 'test_pi', 'active': True})
+    assert 401 == lg.status_code
+
+
+def test_add_user_to_account(client):
     with client.session_transaction() as session:
         session['admin'] = True
     lg = client.post('/api/accounts', json={'name': 'test', 'principle_investigator': 'test_pi', 'active': True})
-    assert lg.status_code == 201
-
+    assert 201 == lg.status_code
+    account_uri = "/api/AccountUsers/{0}".format(json.loads(lg.data)['id'])
+    lg = client.post('/api/user', json={'ldap_name': 'test', 'full_name': 'test user'})
+    assert 201 == lg.status_code
+    lg = client.post(account_uri, lg.data)
+    assert 201 == lg.status_code

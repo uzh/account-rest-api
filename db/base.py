@@ -19,16 +19,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Column, String
 
 
 class AccountingBase(object):
     id = Column(String, default=str(uuid4()), primary_key=True)
-    created_at = Column(DateTime(), default=datetime.now())
-    updated_at = Column(DateTime(), onupdate=datetime.now())
 
     def __init__(self):
         self.id = str(uuid4())

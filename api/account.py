@@ -51,7 +51,7 @@ def find_accounts(admin=False, limit=20):
 
 @auth.login_required
 def add_account(account):
-    if not session['admin']:
+    if 'admin' not in session:
         return NoContent, 401
     a = Account(**account)
     try:
@@ -76,7 +76,7 @@ def update_account(account):
     if not dba:
         logger.error("Account {0} does not exist".format(account.name))
         return "Lookup failed for {0}".format(account.name), 404
-    if not session['admin']:
+    if 'admin' not in session:
         ua = db_session.query(AccountUser)
         admin = ua.filter(AccountUser.user == user and AccountUser.account == dba and AccountUser.admin).one_or_none()
         if not admin:
@@ -88,6 +88,55 @@ def update_account(account):
         db_session.commit()
         db_session.refresh(dba)
         return dba.dump(), 201
+    except SQLAlchemyError:
+        logger.exception("error while updating account")
+        return NoContent, 500
+
+
+@auth.login_required
+def get_account_users(id):
+    account = db_session.query(Account).filter(Account.id == id).one_or_none()
+    if not account:
+        return 'Not found', 404
+    users = []
+    for account_user in db_session.query(AccountUser).filter(Account.id == id):
+        user = db_session.query(User).filter(User.id == account_user.user_id)
+        if user:
+            users.add(user.dump())
+    if 'admin' not in session or session['username'] not in [u['ldap_name'] for u in users]:
+        return NoContent, 401
+    return users, 200
+
+
+@auth.login_required
+def add_account_user(id, user, admin):
+    users, code = get_account_users(id)
+    if code != 200:
+        return users, code
+    user = db_session.query(User).filter(User == user).one_or_none()
+    if not user:
+        return 'User does not exist', 404
+    try:
+        db_session.add(AccountUser(account_id=id, user_id=user.id, admin=admin))
+        db_session.commit()
+        return NoContent, 201
+    except SQLAlchemyError:
+        logger.exception("error while updating account")
+        return NoContent, 500
+
+
+@auth.login_required
+def remove_account_user(id, user):
+    users, code = get_account_users(id)
+    if code != 200:
+        return users, code
+    user = db_session.query(User).filter(User == user).one_or_none()
+    if not user:
+        return 'User does not exist', 404
+    try:
+        db_session.query(AccountUser).filter(account_id=id, user_id=user.id).delete()
+        db_session.commit()
+        return NoContent, 200
     except SQLAlchemyError:
         logger.exception("error while updating account")
         return NoContent, 500
