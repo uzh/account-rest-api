@@ -132,11 +132,11 @@ def remove_account_user(id, user):
     users, code = get_account_users(id)
     if code != 200:
         return users, code
-    user = db_session.query(User).filter(User == user).one_or_none()
+    user = db_session.query(User).filter(User.id == user['id']).one_or_none()
     if not user:
         return 'User does not exist', 404
     try:
-        db_session.query(AccountUser).filter(account_id=id, user_id=user.id).delete()
+        db_session.query(AccountUser).filter(AccountUser.account_id == id and AccountUser.user_id == user.id).delete()
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:

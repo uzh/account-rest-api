@@ -48,13 +48,18 @@ from config import Config
 from app import AccountRestService
 
 
-def insert_user_and_account(client):
-    lg = client.post('/api/accounts', json={'name': 'test_account', 'principle_investigator': 'test_pi', 'active': True})
+def insert_user_and_account(client, postfix=None):
+    lg = client.post('/api/accounts', json={'name': "test_account{0}".format(postfix),
+                                            'principle_investigator': 'test_pi',
+                                            'active': True})
     assert 201 == lg.status_code
     account = json.loads(lg.data)
-    lg = client.post('/api/user', json={'ldap_name': 'test_user', 'full_name': 'test user'})
+    assert account['id'] is not None
+    lg = client.post('/api/user', json={'ldap_name': "test_user{0}".format(postfix),
+                                        'full_name': 'test user'})
     assert 201 == lg.status_code
     user = json.loads(lg.data)
+    assert user['id'] is not None
     return user, account
 
 
@@ -75,7 +80,7 @@ def test_add_account_fails_for_non_admin(client):
 def test_add_user_to_account(client):
     with client.session_transaction() as session:
         session['admin'] = True
-    user, account = insert_user_and_account(client)
+    user, account = insert_user_and_account(client, '1')
     lg = client.get("/api/accounts/{0}".format(account['id']))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
@@ -87,10 +92,27 @@ def test_add_user_to_account(client):
 
 
 def test_retrieve_accounts_as_user(client):
-    test_add_user_to_account(client)
+    with client.session_transaction() as session:
+        session['admin'] = True
+    user, account = insert_user_and_account(client, '2')
+    client.get("/api/accounts/{0}".format(account['id']))
+    client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
+    client.get("/api/accounts/{0}".format(account['id']))
     with client.session_transaction() as session:
         session['admin'] = None
-        session['username'] = 'test_user'
-    lg = client.get('api/accounts')
+        session['username'] = user['ldap_name']
+    lg = client.get('/api/accounts')
     assert 200 == lg.status_code
-    assert 'test_account' == json.loads(lg.data)[0]['name']
+    assert account['name'] == json.loads(lg.data)[0]['name']
+
+
+def test_add_remove_user_from_account(client):
+    with client.session_transaction() as session:
+        session['admin'] = True
+    user, account = insert_user_and_account(client, '3')
+    client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
+    lg = client.delete("/api/accounts/{0}".format(account['id']), json=user)
+    assert 200 == lg.status_code
+    lg = client.get("/api/accounts/{0}".format(account['id']))
+    assert 200 == lg.status_code
+    assert [] == json.loads(lg.data)
