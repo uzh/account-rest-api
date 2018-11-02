@@ -99,11 +99,13 @@ def get_account_users(id):
     if not account:
         return 'Not found', 404
     users = []
-    for account_user in db_session.query(AccountUser).filter(Account.id == id):
-        user = db_session.query(User).filter(User.id == account_user.user_id)
+    for account_user in db_session.query(AccountUser).filter(Account.id == id).all():
+        user = db_session.query(User).filter(User.id == account_user.user_id).one_or_none()
         if user:
-            users.add(user.dump())
-    if 'admin' not in session or session['username'] not in [u['ldap_name'] for u in users]:
+            users.append(user.dump())
+    if 'admin' not in session:
+        return NoContent, 401
+    elif 'username' in session and session['username'] not in [u['ldap_name'] for u in users]:
         return NoContent, 401
     return users, 200
 
@@ -113,7 +115,7 @@ def add_account_user(id, user, admin):
     users, code = get_account_users(id)
     if code != 200:
         return users, code
-    user = db_session.query(User).filter(User == user).one_or_none()
+    user = db_session.query(User).filter(User.id == user['id']).one_or_none()
     if not user:
         return 'User does not exist', 404
     try:

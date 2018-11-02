@@ -48,6 +48,16 @@ from config import Config
 from app import AccountRestService
 
 
+def insert_user_and_account(client):
+    lg = client.post('/api/accounts', json={'name': 'test_account', 'principle_investigator': 'test_pi', 'active': True})
+    assert 201 == lg.status_code
+    account = json.loads(lg.data)
+    lg = client.post('/api/user', json={'ldap_name': 'test_user', 'full_name': 'test user'})
+    assert 201 == lg.status_code
+    user = json.loads(lg.data)
+    return user, account
+
+
 @pytest.fixture(scope='module')
 def client():
     config = Config(create=False)
@@ -58,17 +68,29 @@ def client():
 
 
 def test_add_account_fails_for_non_admin(client):
-    lg = client.post('/api/accounts', json={'name': 'test', 'principle_investigator': 'test_pi', 'active': True})
+    lg = client.post('/api/accounts', json={'name': 'test_account', 'principle_investigator': 'test_pi', 'active': True})
     assert 401 == lg.status_code
 
 
 def test_add_user_to_account(client):
     with client.session_transaction() as session:
         session['admin'] = True
-    lg = client.post('/api/accounts', json={'name': 'test', 'principle_investigator': 'test_pi', 'active': True})
+    user, account = insert_user_and_account(client)
+    lg = client.get("/api/accounts/{0}".format(account['id']))
+    assert 200 == lg.status_code
+    assert [] == json.loads(lg.data)
+    lg = client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
     assert 201 == lg.status_code
-    account_uri = "/api/AccountUsers/{0}".format(json.loads(lg.data)['id'])
-    lg = client.post('/api/user', json={'ldap_name': 'test', 'full_name': 'test user'})
-    assert 201 == lg.status_code
-    lg = client.post(account_uri, lg.data)
-    assert 201 == lg.status_code
+    lg = client.get("/api/accounts/{0}".format(account['id']))
+    assert 200 == lg.status_code
+    assert len(json.loads(lg.data)) == 1
+
+
+def test_retrieve_accounts_as_user(client):
+    test_add_user_to_account(client)
+    with client.session_transaction() as session:
+        session['admin'] = None
+        session['username'] = 'test_user'
+    lg = client.get('api/accounts')
+    assert 200 == lg.status_code
+    assert 'test_account' == json.loads(lg.data)[0]['name']

@@ -52,7 +52,7 @@
             description: Account to be updated
             required: true
             schema:
-              $ref: "#/definitions/NewAccount"
+              $ref: "#/definitions/Account"
         responses:
           201:
             description: Account response
@@ -72,7 +72,7 @@
             description: Account to add to the store
             required: true
             schema:
-              $ref: "#/definitions/NewAccount"
+              $ref: "#/definitions/Account"
         responses:
           201:
             description: Account response
@@ -82,7 +82,7 @@
             description: Not authorized
           500:
             description: Conflict during create
-    /accountUsers/{id}:
+    /accounts/{id}:
       get:
         description: Return users of an account
         x-swagger-router-controller: api.account
@@ -167,7 +167,7 @@
             description: User to be added
             required: true
             schema:
-              $ref: "#/definitions/NewUser"
+              $ref: "#/definitions/User"
         responses:
           200:
             description: Profile information for a user
@@ -187,49 +187,35 @@
       pattern: "^[a-zA-Z0-9-]+$"
   definitions:
     Account:
-      allOf:
-        - $ref: "#/definitions/NewAccount"
-        - required:
-            - id
-          properties:
-            id:
-              type: string
-              maxLength: 20
-              readOnly: true
-    NewAccount:
-      type: "object"
+      type: object
       required:
-        - "name"
-        - "active"
-        - "principle_investigator"
+        - name
+        - active
+        - principle_investigator
       properties:
+        id:
+          type: string
+          readOnly: true
         name:
-          type: "string"
+          type: string
         active:
-          type: "boolean"
+          type: boolean
         principle_investigator:
-          type: "string"
+          type: string
         faculty:
-          type: "string"
+          type: string
         department:
-          type: "string"
+          type: string
     User:
-      allOf:
-        - $ref: "#/definitions/NewUser"
-        - required:
-            - id
-          properties:
-            id:
-              type: string
-              maxLength: 20
-              readOnly: true
-    NewUser:
-      type: "object"
+      type: object
       required:
-        - "ldap_name"
-        - "full_name"
+        - ldap_name
+        - full_name
       properties:
+        id:
+          type: string
+          readOnly: true
         ldap_name:
-          type: "string"
+          type: string
         full_name:
-          type: "string"
+          type: string

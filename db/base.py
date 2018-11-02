@@ -25,7 +25,7 @@ from sqlalchemy import Column, String
 
 
 class AccountingBase(object):
-    id = Column(String, default=str(uuid4()), primary_key=True)
+    id = Column(String(36), default=str(uuid4()), primary_key=True)
 
     def __init__(self):
         self.id = str(uuid4())
