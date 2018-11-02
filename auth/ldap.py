@@ -138,8 +138,6 @@ class LDAP(object):
             self.logger.warning("invalid arguments supplied")
             abort(404)
 
-
-class LdapAuth(object):
     @staticmethod
     def login_required(func):
         @wraps(func)

@@ -26,8 +26,5 @@ import auth.ldap
 
 class NoAuth(object):
     @staticmethod
-    def login_required(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            return f
-        return decorated
+    def login_required(func):
+        return func
