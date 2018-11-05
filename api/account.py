@@ -99,15 +99,13 @@ def get_account_users(id):
     if not account:
         return 'Not found', 404
     users = []
-    for account_user in db_session.query(AccountUser).filter(Account.id == id).all():
+    for account_user in db_session.query(AccountUser).filter(AccountUser.account_id == id).all():
         user = db_session.query(User).filter(User.id == account_user.user_id).one_or_none()
         if user:
             users.append(user.dump())
-    if 'admin' not in session:
-        return NoContent, 401
-    elif 'username' in session and session['username'] not in [u['ldap_name'] for u in users]:
-        return NoContent, 401
-    return users, 200
+    if 'admin' in session or ('username' in session and session['username'] in [u['ldap_name'] for u in users]):
+        return users, 200
+    return NoContent, 401
 
 
 @auth.login_required
