@@ -1,12 +1,11 @@
-# Accounting REST API 
+# Accounting REST API [![Build Status](https://travis-ci.org/uzh/account-rest-api.svg?branch=master)](https://travis-ci.org/uzh/account-rest-api)
 
-The Accounting Rest API aims to provide a stable rest interface for managing accounts and for interacting with OpenLDAP.
+The Accounting Rest API aims to provide a stable rest interface for managing accounts and for interacting with various LDAP systems.
 The package is self contained and has a command line interface.
 Information regarding the configuration options can be found in the docs.
-Details regarding the CLI options can be found in the docs (and by running accounting-rest --help).
+Details regarding the CLI options can be found in the [docs](https://account-rest-api.readthedocs.io/en/latest/) (and by running accounting-rest --help).
 By default gunicorn hosts the application on port 5000.
-Given that this service uses authentication, it can only be accessed through HTTPS. 
-So order to access this service run [nginx](https://www.nginx.com/) in front of it as a reverse proxy, with HTTPS configured (check the docs for the recommended installation and settings).
+In production run [nginx](https://www.nginx.com/) in front of it as a reverse proxy, with HTTPS configured (check the [docs](https://account-rest-api.readthedocs.io/en/latest/) for the recommended installation and settings).
 If you use the systemd install mechanism provided by the CLI, the default path for the configuration is changed to /etc/accounting-rest/api.config. 
 The systemd installer also assumes that you have installed this package in the default interpreter space.
 
