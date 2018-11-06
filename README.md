@@ -1,4 +1,4 @@
-# Accounting REST API [![Build Status](https://travis-ci.org/uzh/account-rest-api.svg?branch=master)](https://travis-ci.org/uzh/account-rest-api)
+# Accounting REST API [![Build Status](https://travis-ci.org/uzh/account-rest-api.svg?branch=master)](https://travis-ci.org/uzh/account-rest-api) [![Coverage Status](https://coveralls.io/repos/github/uzh/account-rest-api/badge.svg?branch=master)](https://coveralls.io/github/uzh/account-rest-api?branch=master)
 
 The Accounting Rest API aims to provide a stable rest interface for managing accounts and for interacting with various LDAP systems.
 The package is self contained and has a command line interface.
