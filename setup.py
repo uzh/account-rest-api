@@ -27,7 +27,7 @@ from setuptools import setup
 
 version = "0.2"
 
-requirements = ["click", "click-log", "psutil", "sqlalchemy", "connexion", "flask-cors", "gunicorn"]
+requirements = ["click", "click-log", "psutil", "sqlalchemy", "connexion", "flask-cors", "gunicorn", "python-ldap"]
 test_requirements = ["pytest", "tox"]
 
 if sys.argv[-1] == "tag":
