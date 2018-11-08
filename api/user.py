@@ -21,6 +21,7 @@
 
 import logging
 
+import pyotp
 from connexion import NoContent
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
@@ -37,7 +38,8 @@ auth = AccountRestService.auth
 @auth.login_required
 def get_user():
     u = db_session.query(User)
-    user = u.filter(User.ldap_name == session['username']).one_or_none()
+    user = u.filter(User.dom_name == session['username']).one_or_none()
+    user.seed = pyotp.totp.TOTP().provisioning_uri(user.dom_name, issuer_name="Accounting Portal")
     return (user.dump(), 200) if user else ("User doesn't exist", 404)
 
 
@@ -45,6 +47,7 @@ def get_user():
 def add_user(user):
     if 'admin' not in session:
         return NoContent, 401
+    user['seed'] = pyotp.random_base32()
     u = User(**user)
     try:
         db_session.add(u)

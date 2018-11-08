@@ -37,7 +37,7 @@ auth = AccountRestService.auth
 @auth.login_required
 def find_accounts(admin=False, limit=20):
     u = db_session.query(User)
-    user = u.filter(User.ldap_name == session['username']).one_or_none()
+    user = u.filter(User.dom_name == session['username']).one_or_none()
     if not user:
         logger.warning("User {0} not found".format(session['username']))
         return "User doesn't exist", 404
@@ -67,7 +67,7 @@ def add_account(account):
 @auth.login_required
 def update_account(account):
     u = db_session.query(User)
-    user = u.filter(User.ldap_name == session['username']).one_or_none()
+    user = u.filter(User.dom_name == session['username']).one_or_none()
     if not user:
         logger.warning("User {0} not found".format(session['username']))
         return "User doesn't exist", 404
@@ -80,8 +80,8 @@ def update_account(account):
         ua = db_session.query(AccountUser)
         admin = ua.filter(AccountUser.user == user and AccountUser.account == dba and AccountUser.admin).one_or_none()
         if not admin:
-            logger.error("user {0} not authorized for changes of {1}".format(user.ldap_name, dba.name))
-            return "User {0} is not an admin".format(user.ldap_name), 403
+            logger.error("user {0} not authorized for changes of {1}".format(user.dom_name, dba.name))
+            return "User {0} is not an admin".format(user.dom_name), 403
     try:
         for k in account:
             setattr(dba, k, account[k])
@@ -103,7 +103,7 @@ def get_account_users(id):
         user = db_session.query(User).filter(User.id == account_user.user_id).one_or_none()
         if user:
             users.append(user.dump())
-    if 'admin' in session or ('username' in session and session['username'] in [u['ldap_name'] for u in users]):
+    if 'admin' in session or ('username' in session and session['username'] in [u['dom_name'] for u in users]):
         return users, 200
     return NoContent, 401
 

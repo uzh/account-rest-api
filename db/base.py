@@ -23,8 +23,10 @@ from uuid import uuid4
 
 from sqlalchemy import Column, String
 
-def _gen_id(self):
+
+def _gen_id():
     return str(uuid4())
+
 
 class AccountingBase(object):
     id = Column(String(36), default=_gen_id, primary_key=True)

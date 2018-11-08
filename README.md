@@ -1,6 +1,12 @@
-# Accounting REST API [![Build Status](https://travis-ci.org/uzh/account-rest-api.svg?branch=master)](https://travis-ci.org/uzh/account-rest-api) [![Coverage Status](https://coveralls.io/repos/github/uzh/account-rest-api/badge.svg?branch=master)](https://coveralls.io/github/uzh/account-rest-api?branch=master)
+# Accounting REST API [![Build Status](https://travis-ci.org/uzh/account-rest-api.svg?branch=master)](https://travis-ci.org/uzh/account-rest-api)
 
-The Accounting Rest API aims to provide a stable rest interface for managing accounts and for interacting with various LDAP systems.
+The Accounting Rest API aims to provide a stable rest interface for managing users that use OTP authentication and accounts.
+The idea is that users authenticate on the service using [Shibboleth](https://www.shibboleth.net/), and can manage their account.
+An account is a research group within a University (basically a billing address). 
+A resource is an IT resource to which access can be granted.  
+A user is an entity which has associations with accounts and resources. 
+There is a pam module available for using this service as OTP authenticator.
+ 
 The package is self contained and has a command line interface.
 Information regarding the configuration options can be found in the docs.
 Details regarding the CLI options can be found in the [docs](https://account-rest-api.readthedocs.io/en/latest/) (and by running accounting-rest --help).

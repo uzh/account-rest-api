@@ -209,13 +209,16 @@
     User:
       type: object
       required:
-        - ldap_name
+        - dom_name
         - full_name
       properties:
         id:
           type: string
           readOnly: true
-        ldap_name:
+        dom_name:
           type: string
         full_name:
           type: string
+        seed:
+          type: string
+          readOnly: true

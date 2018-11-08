@@ -33,7 +33,7 @@ def insert_user_and_account(client, postfix=None):
     assert 201 == lg.status_code
     account = json.loads(lg.data)
     assert account['id'] is not None
-    lg = client.post('/api/user', json={'ldap_name': "test_user{0}".format(postfix),
+    lg = client.post('/api/user', json={'dom_name': "test_user{0}".format(postfix),
                                         'full_name': 'test user'})
     assert 201 == lg.status_code
     user = json.loads(lg.data)
@@ -76,7 +76,7 @@ def test_retrieve_accounts_as_user(client):
     client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
     with client.session_transaction() as session:
         session['admin'] = None
-        session['username'] = user['ldap_name']
+        session['username'] = user['dom_name']
     lg = client.get('/api/accounts')
     assert 200 == lg.status_code
     assert account['name'] == json.loads(lg.data)[0]['name']

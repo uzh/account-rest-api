@@ -26,5 +26,6 @@ from db.handler import Base
 
 class User(Base):
     __tablename__ = "users"
-    ldap_name = Column(String(100), unique=True)
+    dom_name = Column(String(100), unique=True)
     full_name = Column(String(255))
+    seed = Column(String(16))
