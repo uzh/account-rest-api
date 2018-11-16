@@ -16,103 +16,104 @@
   produces:
     - "application/json"
   paths:
-    /accounts:
+    /groups:
       get:
-        description: Returns all accounts from the system that the user is associated with
-        x-swagger-router-controller: api.account
-        operationId: find_accounts
+        description: Return the gid of a specific group
+        x-swagger-router-controller: api.group
+        operationId: get_group_id
         parameters:
-          - name: admin
+          - name: group
             in: query
-            description: only return accounts where the user is administrator
-            required: false
-            type: boolean
-          - name: limit
-            in: query
-            description: maximum number of results to return
-            required: false
-            type: integer
-            format: int32
+            description: name of the group
+            required: true
+            type: string
         responses:
           200:
-            description: A list of accounts the user is associated with
+            description: The gid of the group
             schema:
-              type: "array"
-              items:
-                $ref: "#/definitions/Account"
+              type: integer
+          401:
+            description: Not authorized
           404:
-            description: User does not exist
+            description: Group does not exist
       post:
-        description: Creates a new account, duplicates are not allowed
-        x-swagger-router-controller: api.account
-        operationId: add_account
+        description: Creates a new group, duplicates are not allowed
+        x-swagger-router-controller: api.group
+        operationId: add_group
         parameters:
-          - name: account
+          - name: group
             in: body
-            description: Account to be updated
             required: true
             schema:
-              $ref: "#/definitions/Account"
+              $ref: "#/definitions/Group"
         responses:
           201:
-            description: Account response
-            schema:
-              $ref: "#/definitions/Account"
+            description: Group response
           403:
-            description: User is not an account administrator
+            description: User is not a group administrator
           500:
             description: Conflicting state during update
       put:
-        description: Update an existing account
-        x-swagger-router-controller: api.account
-        operationId: update_account
+        description: Update an existing group
+        x-swagger-router-controller: api.group
+        operationId: update_group
         parameters:
-          - name: account
+          - name: gid
+            in: query
+            decription: Group id of the group that needs updating
+            required: true
+            type: integer
+            format: int32
+          - name: group
             in: body
-            description: Account to add to the store
             required: true
             schema:
-              $ref: "#/definitions/Account"
+              $ref: "#/definitions/Group"
         responses:
           201:
-            description: Account response
-            schema:
-              $ref: "#/definitions/Account"
+            description: Group response
           401:
             description: Not authorized
           500:
-            description: Conflict during create
-    /accounts/{id}:
+            description: Conflict during update
+    /users/:
       get:
-        description: Return users of an account
-        x-swagger-router-controller: api.account
-        operationId: get_account_users
+        description: Return users of a group
+        x-swagger-router-controller: api.group
+        operationId: get_group_users
         parameters:
-          - $ref: '#/parameters/id'
+          - name: name
+            in: body
+            description: group name
+            required: true
+            type: string
         responses:
-          200:
-            description: The Account
+          "200":
+            description: The group's users
             schema:
               type: "array"
               items:
-                $ref: '#/definitions/User'
+                $ref: '#/definitions/GroupUser'
           404:
-            description: Account does not exist
+            description: Group does not exist
       post:
-        description: Add user to an account
-        x-swagger-router-controller: api.account
-        operationId: add_account_user
+        description: Add user to a group
+        x-swagger-router-controller: api.group
+        operationId: add_group_user
         parameters:
-          - $ref: '#/parameters/id'
+          - name: group
+            in: body
+            description: Target group
+            required: true
+            type: string
           - name: user
             in: body
-            description: Account to be updated
+            description: Target user
             required: true
-            schema:
-              $ref: "#/definitions/User"
+            type: string
           - name: admin
             in: query
-            description: Mark user as account admin
+            description: Mark user as group admin
             required: false
             type: boolean
         responses:
@@ -121,30 +122,53 @@
           401:
             description: Not authorized
           404:
-            description: Account does not exist
+            description: Group does not exist
           500:
             description: Conflict during add
       delete:
-        description: Remove user from an account
-        x-swagger-router-controller: api.account
-        operationId: remove_account_user
+        description: Remove user from a group
+        x-swagger-router-controller: api.group
+        operationId: remove_group_user
         parameters:
-        - $ref: '#/parameters/id'
-        - name: user
-          in: body
-          description: User to be removed
-          required: true
-          schema:
-            $ref: "#/definitions/User"
+          - name: group
+            in: body
+            description: Target group
+            required: true
+            type: string
+          - name: user
+            in: body
+            description: Target user
+            required: true
+            type: string
         responses:
           200:
             description: The user has been removed
           401:
             description: Not authorized
           404:
-            description: Account does not exist
+            description: Group does not exist
           500:
             description: Conflict during remove
+    /user/groups:
+      get:
+        description: Returns all groups from the system that the user is associated with
+        x-swagger-router-controller: user.group
+        operationId: find_group
+        parameters:
+          - name: admin
+            in: query
+            description: only return groups where the user is administrator
+            required: false
+            type: boolean
+        responses:
+          200:
+            description: A list of groups the user is associated with
+            schema:
+              type: "array"
+              items:
+                $ref: "#/definitions/Group"
+          404:
+            description: User does not exist
     /user:
       get:
         description: Return user profile
@@ -169,42 +193,40 @@
             schema:
               $ref: "#/definitions/User"
         responses:
-          200:
+          201:
             description: Profile information for a user
-            schema:
-              $ref: '#/definitions/User'
           401:
             description: Not authorized
           500:
             description: Conflict during create
-  parameters:
-    id:
-      name: id
-      description: The unique identifer for an Object (i.e. User, Account, etc)
-      in: path
-      type: string
-      required: true
-      pattern: "^[a-zA-Z0-9-]+$"
   definitions:
-    Account:
+    Group:
       type: object
       required:
         - name
+        - owner
         - active
-        - principle_investigator
       properties:
-        id:
-          type: string
-          readOnly: true
         name:
+          type: string
+        owner:
           type: string
         active:
           type: boolean
-        principle_investigator:
+    Owner:
+      type: object
+      required:
+        - dom_name
+      properties:
+        dom_name:
           type: string
-        faculty:
+        address:
           type: string
-        department:
+        postal_code:
+          type: string
+        city:
+          type: string
+        country:
           type: string
     User:
       type: object
@@ -212,9 +234,6 @@
         - dom_name
         - full_name
       properties:
-        id:
-          type: string
-          readOnly: true
         dom_name:
           type: string
         full_name:
@@ -222,3 +241,12 @@
         seed:
           type: string
           readOnly: true
+    GroupUser:
+      type: object
+      properties:
+        dom_name:
+          type: string
+        full_name:
+          type: string
+        admin:
+          type: boolean

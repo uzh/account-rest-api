@@ -19,13 +19,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, Integer, event, DDL
 
 from db.handler import Base
 
 
 class User(Base):
     __tablename__ = "users"
-    dom_name = Column(String(100), unique=True)
+    dom_name = Column(String(255), unique=True)
     full_name = Column(String(255))
     seed = Column(String(16))

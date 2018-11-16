@@ -21,5 +21,6 @@
 
 import db.base
 import db.handler
+import db.resource
 import db.user
-import db.account
+import db.group

@@ -31,44 +31,46 @@ class DefaultConfig(object):
     @staticmethod
     def create():
         config = configparser.ConfigParser()
-        config.add_section("general")
-        config.set("general", "CORS", "False")
-        config.set("general", "secret", "change-me-please")
-        config.set("general", "port", "8080")
-        config.set("general", "debug", "False")
-        config.set("general", "auth", "ldap")
+        config.add_section('general')
+        config.set('general', 'CORS', 'False')
+        config.set('general', 'secret', 'change-me-please')
+        config.set('general', 'port', '8080')
+        config.set('general', 'debug', 'False')
+        config.set('general', 'auth', 'ldap')
 
-        # config.add_section("token")
-        # config.set("token", "secret", "super-secret-key-please-change")
-        # config.set("token", "name", "auth-token")
-        # config.set("token", "location", "cookie")
+        # config.add_section('token')
+        # config.set('token', 'secret', 'super-secret-key-please-change')
+        # config.set('token', 'name', 'auth-token')
+        # config.set('token', 'location', 'cookie')
 
-        config.add_section("database")
-        config.set("database", "connection", "mysql://root:password@localhost:3306/accounting")
+        config.add_section('database')
+        config.set('database', 'connection', 'mysql://root:password@localhost:3306/accounting')
 
-        config.add_section("ldap")
-        config.set("ldap", "host", "localhost")
-        config.set("ldap", "port", "389")
-        config.set("ldap", "schema", "ldap")
-        config.set("ldap", "domain", "example.com'")
-        config.set("ldap", "search_base", "OU=Domain Users,DC=example,DC=com")
-        config.set("ldap", "administrator_groups", "")
-        config.set("ldap", "required_groups", "")
+        config.add_section('ldap')
+        config.set('ldap', 'host', 'localhost')
+        config.set('ldap', 'port', '389')
+        config.set('ldap', 'schema', 'ldap')
+        config.set('ldap', 'domain', 'example.com')
+        config.set('ldap', 'search_base', 'OU=Domain Users,DC=example,DC=com')
+        config.set('ldap', 'administrator_groups', '')
+        config.set('ldap', 'required_groups', '')
 
-        config.add_section("accounting")
-        config.set("accounting", "ldap_server", "ldaps://localhost:636")
-        config.set("accounting", "ldap_user_loc", "uid")
+        config.add_section('accounting')
+        config.set('general', 'uid_init', '2000')
+        config.set('general', 'gid_init', '2000')
+        config.set('accounting', 'ldap_server', 'ldaps://localhost:636')
+        config.set('accounting', 'ldap_user_loc', 'uid')
 
 
 
-        config.add_section("gunicorn")
-        config.set("gunicorn", "bind", "0.0.0.0:{0}".format(config.get("general", "port")))
-        config.set("gunicorn", "pidfile", "/var/run/srg.pid")
-        config.set("gunicorn", "keepalive", "650")
-        config.set("gunicorn", "max_requests", "0")
-        config.set("gunicorn", "max_requests_jitter", "0")
-        config.set("gunicorn", "worker_class", "egg:meinheld#gunicorn_worker")
-        config.set("gunicorn", "workers", "2")
+        config.add_section('gunicorn')
+        config.set('gunicorn', 'bind', '0.0.0.0:{0}'.format(config.get('general', 'port')))
+        config.set('gunicorn', 'pidfile', '/var/run/srg.pid')
+        config.set('gunicorn', 'keepalive', '650')
+        config.set('gunicorn', 'max_requests', '0')
+        config.set('gunicorn', 'max_requests_jitter', '0')
+        config.set('gunicorn', 'worker_class', 'egg:meinheld#gunicorn_worker')
+        config.set('gunicorn', 'workers', '2')
         return config
 
 
@@ -88,7 +90,7 @@ class Config(object):
             self.logger.debug("writing new config to {0}".format(path))
             if not exists(dirname(path)):
                 Path.mkdir(Path(dirname(path)), parents=True)
-            with open(path, "w") as cf:
+            with open(path, 'w') as cf:
                 self.config.write(cf)
         else:
             self.logger.debug("already found config at {0}, using it".format(path))
@@ -105,22 +107,22 @@ class Config(object):
         return result
 
     def general(self):
-        return self._fetch("general")
+        return self._fetch('general')
 
     def token(self):
-        return self._fetch("token")
+        return self._fetch('token')
 
     def database(self):
-        return self._fetch("database")
+        return self._fetch('database')
 
     def ldap(self):
-        return self._fetch("ldap")
+        return self._fetch('ldap')
 
     def accounting(self):
-        return self._fetch("accounting")
+        return self._fetch('accounting')
 
     def gunicorn(self):
-        return self._fetch("gunicorn")
+        return self._fetch('gunicorn')
 
     def update(self, section, option, value):
         self.config.set(section, option, value)

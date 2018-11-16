@@ -27,6 +27,7 @@ from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import AccountRestService
+from db.group import GroupUser
 from db.handler import db_session
 from db.user import User
 
@@ -36,11 +37,28 @@ auth = AccountRestService.auth
 
 
 @auth.login_required
+def find_groups(admin=False):
+    u = db_session.query(User)
+    user = u.filter(User.dom_name == session['username']).one_or_none()
+    if not user:
+        logger.warning("user {0} not found".format(session['username']))
+        return "user doesn't exist", 404
+    ua = db_session.query(GroupUser)
+    ug = ua.filter(GroupUser.user == user)
+    if admin:
+        return [g.group.dump() for g in ug if g.admin], 200
+    else:
+        return [g.group.dump() for g in ug], 200
+
+
+@auth.login_required
 def get_user():
     u = db_session.query(User)
     user = u.filter(User.dom_name == session['username']).one_or_none()
-    user.seed = pyotp.totp.TOTP().provisioning_uri(user.dom_name, issuer_name="Accounting Portal")
-    return (user.dump(), 200) if user else ("User doesn't exist", 404)
+    if not user:
+        return NoContent, 404
+    user.seed = pyotp.totp.TOTP().provisioning_uri(user.dom_name, issuer_name='Accounting Portal')
+    return user.dump(), 200
 
 
 @auth.login_required
@@ -52,8 +70,7 @@ def add_user(user):
     try:
         db_session.add(u)
         db_session.commit()
-        db_session.refresh(u)
-        return u.dump(), 201
+        return NoContent, 201
     except SQLAlchemyError:
         logger.exception("error while creating account")
         return NoContent, 500

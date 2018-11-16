@@ -34,6 +34,7 @@ class AccountRestService(object):
     logger = logging.getLogger(__name__)
 
     auth = None
+    config = None
 
     def __init__(self, config, auth=True, direct=False):
         """
@@ -45,7 +46,7 @@ class AccountRestService(object):
         self.config = config
         self.direct = direct
         self.logger.debug("initializing database")
-        init_db(self.config.database().get("connection"))
+        init_db(self.config.database().get('connection'))
         if direct:
             self.logger.info("direct initialization requested")
             self.app = connexion.FlaskApp(__name__, specification_dir='swagger/')
@@ -55,8 +56,8 @@ class AccountRestService(object):
                                           port=self.config.general.get('port'),
                                           specification_dir='swagger/',
                                           server='gunicorn')
-        self.app.app.secret_key = self.config.general().get("secret")
-        if auth and self.config.general().get("auth"):
+        self.app.app.secret_key = self.config.general().get('secret')
+        if auth and self.config.general().get('auth'):
             self.logger.info("initializing LDAP authorization")
             login_path = 'login'
             self.app.app.config['LDAP_LOGIN_PATH'] = login_path

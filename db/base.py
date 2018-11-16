@@ -19,21 +19,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from uuid import uuid4
-
-from sqlalchemy import Column, String
-
-
-def _gen_id():
-    return str(uuid4())
+from sqlalchemy import Column, Integer
 
 
 class AccountingBase(object):
-    id = Column(String(36), default=_gen_id, primary_key=True)
-
-    def __init__(self):
-        self.id = str(uuid4())
+    id = Column(Integer, primary_key=True)
 
     def dump(self):
-        return dict([(k, v) for k, v in vars(self).items() if not k.startswith("_")])
+        return dict([(k, v) for k, v in vars(self).items() if not k.startswith("_") and k != 'id'])
 

@@ -23,29 +23,14 @@ from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
+from db.group import group_resources
 from db.handler import Base
 from db.user import User
 
 
-class Account(Base):
-    __tablename__ = "accounts"
+class Resource(Base):
+    __tablename__ = 'resources'
     name = Column(String(100), unique=True)
     active = Column(Boolean)
-    principle_investigator = Column(String(255))
-    faculty = Column(String(100))
-    department = Column(String(100))
 
-
-class AccountUser(Base):
-    __tablename__ = 'account_users'
-
-    account_id = Column(String, ForeignKey('accounts.id'))
-    user_id = Column(String, ForeignKey('users.id'))
-    admin = Column(Boolean, nullable=False)
-
-    account = relationship(Account, backref="account_users")
-    user = relationship(User, backref="account_users")
-
-
-Account.users = association_proxy("account_users", "users")
-User.accounts = association_proxy("account_users", "accounts")
+    groups = relationship("Group", secondary=group_resources, back_populates="resources")

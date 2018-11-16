@@ -26,19 +26,19 @@ from config import Config
 from app import AccountRestService
 
 
-def insert_user_and_account(client, postfix=None):
-    lg = client.post('/api/accounts', json={'name': "test_account{0}".format(postfix),
-                                            'principle_investigator': 'test_pi',
-                                            'active': True})
+def insert_user_and_group(client, postfix=None):
+    lg = client.post('/api/groups', json={'name': "test_group{0}".format(postfix),
+                                          'principle_investigator': 'test_pi',
+                                          'active': True})
     assert 201 == lg.status_code
-    account = json.loads(lg.data)
-    assert account['id'] is not None
+    group = json.loads(lg.data)
+    assert group['id'] is not None
     lg = client.post('/api/user', json={'dom_name': "test_user{0}".format(postfix),
                                         'full_name': 'test user'})
     assert 201 == lg.status_code
     user = json.loads(lg.data)
     assert user['id'] is not None
-    return user, account
+    return user, group
 
 
 @pytest.fixture(scope='module')
@@ -50,45 +50,45 @@ def client():
         yield c
 
 
-def test_add_account_fails_for_non_admin(client):
-    lg = client.post('/api/accounts', json={'name': 'test_account', 'principle_investigator': 'test_pi', 'active': True})
+def test_add_group_fails_for_non_admin(client):
+    lg = client.post('/api/groups', json={'name': 'test_group', 'principle_investigator': 'test_pi', 'active': True})
     assert 401 == lg.status_code
 
 
-def test_add_user_to_account(client):
+def test_add_user_to_group(client):
     with client.session_transaction() as session:
         session['admin'] = True
-    user, account = insert_user_and_account(client, '_1')
-    lg = client.get("/api/accounts/{0}".format(account['id']))
+    user, group = insert_user_and_group(client, '_1')
+    lg = client.get("/api/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
-    lg = client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
+    lg = client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
     assert 201 == lg.status_code
-    lg = client.get("/api/accounts/{0}".format(account['id']))
+    lg = client.get("/api/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert len(json.loads(lg.data)) == 1
 
 
-def test_retrieve_accounts_as_user(client):
+def test_retrieve_groups_as_user(client):
     with client.session_transaction() as session:
         session['admin'] = True
-    user, account = insert_user_and_account(client, '_2')
-    client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
+    user, group = insert_user_and_group(client, '_2')
+    client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
     with client.session_transaction() as session:
         session['admin'] = None
         session['username'] = user['dom_name']
-    lg = client.get('/api/accounts')
+    lg = client.get('/api/groups')
     assert 200 == lg.status_code
-    assert account['name'] == json.loads(lg.data)[0]['name']
+    assert group['name'] == json.loads(lg.data)[0]['name']
 
 
-def test_add_remove_user_from_account(client):
+def test_add_remove_user_from_group(client):
     with client.session_transaction() as session:
         session['admin'] = True
-    user, account = insert_user_and_account(client, '_3')
-    client.post("/api/accounts/{0}?admin=False".format(account['id']), json=user)
-    lg = client.delete("/api/accounts/{0}".format(account['id']), json=user)
+    user, group = insert_user_and_group(client, '_3')
+    client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
+    lg = client.delete("/api/groups/{0}".format(group['id']), json=user)
     assert 200 == lg.status_code
-    lg = client.get("/api/accounts/{0}".format(account['id']))
+    lg = client.get("/api/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
