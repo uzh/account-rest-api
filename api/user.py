@@ -26,18 +26,26 @@ from connexion import NoContent
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
+from api.admin import is_admin
 from app import AccountRestService
 from db.group import GroupUser
 from db.handler import db_session
 from db.user import User
 
 
-logger = logging.getLogger('api.account')
+logger = logging.getLogger('api.user')
 auth = AccountRestService.auth
 
 
+def get_users(limit=50):
+    if not is_admin():
+        return NoContent, 401
+    users = db_session.query(User)
+    return [u.dump() for u in users][:limit]
+
+
 @auth.login_required
-def find_groups(admin=False):
+def find_groups(admin=False, limit=50):
     u = db_session.query(User)
     user = u.filter(User.dom_name == session['username']).one_or_none()
     if not user:
@@ -46,24 +54,14 @@ def find_groups(admin=False):
     ua = db_session.query(GroupUser)
     ug = ua.filter(GroupUser.user == user)
     if admin:
-        return [g.group.dump() for g in ug if g.admin], 200
+        return [g.group.dump() for g in ug if g.admin][:limit], 200
     else:
-        return [g.group.dump() for g in ug], 200
-
-
-@auth.login_required
-def get_user():
-    u = db_session.query(User)
-    user = u.filter(User.dom_name == session['username']).one_or_none()
-    if not user:
-        return NoContent, 404
-    user.seed = pyotp.totp.TOTP().provisioning_uri(user.dom_name, issuer_name='Accounting Portal')
-    return user.dump(), 200
+        return [g.group.dump() for g in ug][:limit], 200
 
 
 @auth.login_required
 def add_user(user):
-    if 'admin' not in session:
+    if not is_admin():
         return NoContent, 401
     user['seed'] = pyotp.random_base32()
     u = User(**user)
@@ -74,3 +72,27 @@ def add_user(user):
     except SQLAlchemyError:
         logger.exception("error while creating account")
         return NoContent, 500
+
+
+@auth.login_required
+def remove_user(name):
+    if not is_admin():
+        return NoContent, 401
+    try:
+        db_session.query(User).filter(User.dom_name == name).delete()
+        db_session.commit()
+        return NoContent, 201
+    except SQLAlchemyError:
+        logger.exception("error while creating account")
+        return NoContent, 500
+
+
+@auth.login_required
+def get_user():
+    u = db_session.query(User)
+    user = u.filter(User.dom_name == session['username']).one_or_none()
+    if not user:
+        return NoContent, 404
+    result = user.dump()
+    result['seed_img'] = pyotp.totp.TOTP(user.seed).provisioning_uri(user.dom_name, issuer_name='Accounting Portal')
+    return result, 200

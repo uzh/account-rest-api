@@ -19,9 +19,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from functools import wraps
-
 import auth.ldap
+import auth.access_secret
 
 
 class NoAuth(object):

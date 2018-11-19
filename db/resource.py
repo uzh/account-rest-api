@@ -19,13 +19,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey
-from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
 
 from db.group import group_resources
 from db.handler import Base
-from db.user import User
 
 
 class Resource(Base):

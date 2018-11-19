@@ -19,9 +19,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-import db.base
-import db.handler
-import db.resource
-import db.user
-import db.group
-import db.service
+from sqlalchemy import Column, String
+
+from db.handler import Base
+
+
+class Service(Base):
+    __tablename__ = "services"
+    name = Column(String(255), unique=True)
+    access = Column(String(16))
+    secret = Column(String(32))

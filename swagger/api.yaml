@@ -1,43 +1,165 @@
 ---
-  swagger: "2.0"
+  swagger: '2.0'
   info:
-    version: "1.0.0"
-    title: "Accounts"
-    description: "Manage Billing Accounts"
-    termsOfService: "https://cloud.s3it.uzh.ch/static/custom/UZH-AUP.html"
+    version: '0.1'
+    title: Accounts
+    description: Manage Accounts
     contact:
-      name: "University of Zurich - S3IT"
+      name: University of Zurich - S3IT
     license:
-      name: "GPLv3"
-  host: "accounting.s3it.uzh.ch"
-  basePath: "/api"
+      name: GPLv3
+  basePath: /api/v1
   consumes:
-    - "application/json"
+    - application/json
   produces:
-    - "application/json"
+    - application/json
   paths:
-    /groups:
+    /admins:
       get:
-        description: Return the gid of a specific group
-        x-swagger-router-controller: api.group
-        operationId: get_group_id
+        description: Get all admins
+        x-swagger-router-controller: api.admin
+        operationId: get_admins
         parameters:
-          - name: group
+          - name: limit
             in: query
-            description: name of the group
+            description: Limit amount of users returned
+            required: false
+            type: integer
+            format: int32
+        responses:
+          200:
+            description: List of all admins
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/User'
+          401:
+            description: Not authorized
+      post:
+        description: Assign user to admins
+        x-swagger-router-controller: api.admin
+        operationId: add_admin
+        parameters:
+          - name: name
+            in: query
+            description: Name of the user to be added to admins
             required: true
             type: string
         responses:
-          200:
-            description: The gid of the group
-            schema:
-              type: integer
+          201:
+            description: User added to admins
           401:
             description: Not authorized
           404:
-            description: Group does not exist
+            description: User not found
+          500:
+            description: Conflict during add
+      delete:
+        description: Remove user to admins
+        x-swagger-router-controller: api.admin
+        operationId: remove_admin
+        parameters:
+          - name: name
+            in: query
+            description: Name of the user to be removed from admins
+            required: true
+            type: string
+        responses:
+          201:
+            description: User removed from admins
+          401:
+            description: Not authorized
+          404:
+            description: User not found
+          500:
+            description: Conflict during remove
+    /services:
+      get:
+        description: Get all service accounts
+        x-swagger-router-controller: api.admin
+        operationId: get_services
+        parameters:
+          - name: limit
+            in: query
+            description: Limit amount of services returned
+            required: false
+            type: integer
+            format: int32
+        responses:
+          200:
+            description: List of all services
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/Service'
+          401:
+            description: Not authorized
       post:
-        description: Creates a new group, duplicates are not allowed
+        description: Service to add
+        x-swagger-router-controller: api.admin
+        operationId: add_service
+        parameters:
+          - name: name
+            in: query
+            description: Service name
+            required: true
+            type: string
+        responses:
+          201:
+            description: Service added
+            schema:
+              $ref: '#/definitions/Service'
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during add
+      delete:
+        description: Remove service
+        x-swagger-router-controller: api.admin
+        operationId: remove_service
+        parameters:
+          - name: name
+            in: query
+            description: Service to be removed
+            required: true
+            type: string
+        responses:
+          201:
+            description: Service removed
+          401:
+            description: Not authorized
+          404:
+            description: Service not found
+          500:
+            description: Conflict during remove
+    /groups:
+      get:
+        description: Get all groups
+        x-swagger-router-controller: api.group
+        operationId: get_groups
+        parameters:
+          - name: active
+            in: query
+            description: Only show active groups
+            required: false
+            type: boolean
+          - name: limit
+            in: query
+            description: Limit amount of groups returned
+            required: false
+            type: integer
+            format: int32
+        responses:
+          200:
+            description: All groups
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/Group'
+          401:
+            description: Not authorized
+      post:
+        description: Creates a new group, duplicate names are not allowed
         x-swagger-router-controller: api.group
         operationId: add_group
         parameters:
@@ -45,7 +167,7 @@
             in: body
             required: true
             schema:
-              $ref: "#/definitions/Group"
+              $ref: '#/definitions/Group'
         responses:
           201:
             description: Group response
@@ -54,21 +176,16 @@
           500:
             description: Conflicting state during update
       put:
-        description: Update an existing group
+        description: Update an existing group (cannot change the name)
         x-swagger-router-controller: api.group
         operationId: update_group
         parameters:
-          - name: gid
-            in: query
-            decription: Group id of the group that needs updating
-            required: true
-            type: integer
-            format: int32
           - name: group
             in: body
+            description: New group content
             required: true
             schema:
-              $ref: "#/definitions/Group"
+              $ref: '#/definitions/Group'
         responses:
           201:
             description: Group response
@@ -76,24 +193,26 @@
             description: Not authorized
           500:
             description: Conflict during update
-    /users/:
+    /group/users/:
       get:
         description: Return users of a group
         x-swagger-router-controller: api.group
         operationId: get_group_users
         parameters:
           - name: name
-            in: body
+            in: query
             description: group name
             required: true
             type: string
         responses:
-          "200":
-            description: The group's users
+          200:
+            description: Members of a group
             schema:
-              type: "array"
+              type: array
               items:
-                $ref: '#/definitions/GroupUser'
+                $ref: '#/definitions/Member'
+          401:
+            description: Not authorized
           404:
             description: Group does not exist
       post:
@@ -102,12 +221,12 @@
         operationId: add_group_user
         parameters:
           - name: group
-            in: body
+            in: query
             description: Target group
             required: true
             type: string
           - name: user
-            in: body
+            in: query
             description: Target user
             required: true
             type: string
@@ -131,12 +250,12 @@
         operationId: remove_group_user
         parameters:
           - name: group
-            in: body
+            in: query
             description: Target group
             required: true
             type: string
           - name: user
-            in: body
+            in: query
             description: Target user
             required: true
             type: string
@@ -149,29 +268,65 @@
             description: Group does not exist
           500:
             description: Conflict during remove
-    /user/groups:
+    /users:
       get:
-        description: Returns all groups from the system that the user is associated with
-        x-swagger-router-controller: user.group
-        operationId: find_group
+        description: Get all users
+        x-swagger-router-controller: api.user
+        operationId: get_users
         parameters:
-          - name: admin
+          - name: limit
             in: query
-            description: only return groups where the user is administrator
+            description: Limit amount of users returned
             required: false
-            type: boolean
+            type: integer
+            format: int32
         responses:
           200:
-            description: A list of groups the user is associated with
+            description: List of all users
             schema:
-              type: "array"
+              type: array
               items:
-                $ref: "#/definitions/Group"
-          404:
-            description: User does not exist
+                $ref: '#/definitions/User'
+          401:
+            description: Not authorized
+      post:
+        description: Create user
+        x-swagger-router-controller: api.user
+        operationId: add_user
+        parameters:
+          - name: user
+            in: body
+            description: User to be added
+            required: true
+            schema:
+              $ref: '#/definitions/User'
+        responses:
+          201:
+            description: Profile information for a user
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during create
+      delete:
+        description: Remove user
+        x-swagger-router-controller: api.user
+        operationId: remove_user
+        parameters:
+          - name: name
+            in: query
+            description: User to be removed
+            required: true
+            type: string
+        responses:
+          200:
+            description: User deleted
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during create
     /user:
       get:
-        description: Return user profile
+        description: Return current user profile
         x-swagger-router-controller: api.user
         operationId: get_user
         responses:
@@ -181,24 +336,99 @@
               $ref: '#/definitions/User'
           404:
             description: User not found
-      post:
-        description: Create user profile
+    /user/groups:
+      get:
+        description: Returns all groups from the system that the user is associated with
         x-swagger-router-controller: api.user
-        operationId: add_user
+        operationId: find_groups
         parameters:
-          - name: user
-            in: body
-            description: User to be added
-            required: true
-            schema:
-              $ref: "#/definitions/User"
+          - name: admin
+            in: query
+            description: Only return groups where the user is administrator
+            required: false
+            type: boolean
+          - name: limit
+            in: query
+            description: Limit amount of groups returned
+            required: false
+            type: integer
+            format: int32
         responses:
-          201:
-            description: Profile information for a user
+          200:
+            description: A list of groups the user is associated with
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/Group'
+          404:
+            description: User does not exist
+    /service/login:
+      post:
+        description: Validate user credentials
+        x-swagger-router-controller: api.service
+        operationId: login
+        parameters:
+          - name: name
+            in: query
+            description: name of the user
+            required: true
+            type: string
+          - name: otp
+            in: query
+            description: one time password
+            required: true
+            type: string
+        responses:
+          200:
+            description: User name
+            schema:
+              type: string
           401:
             description: Not authorized
-          500:
-            description: Conflict during create
+          404:
+            description: User not found
+    /service/group:
+      get:
+        description: Return the gid of a specific group
+        x-swagger-router-controller: api.service
+        operationId: get_group_id
+        parameters:
+          - name: group
+            in: query
+            description: name of the group
+            required: true
+            type: string
+        responses:
+          200:
+            description: The gid of the group
+            schema:
+              type: integer
+              format: int32
+          401:
+            description: Not authorized
+          404:
+            description: Group does not exist
+    /service/user:
+      get:
+        description: Return the uid of a specific user
+        x-swagger-router-controller: api.service
+        operationId: get_user_id
+        parameters:
+          - name: user
+            in: query
+            description: name of the user
+            required: true
+            type: string
+        responses:
+          200:
+            description: The uid of the group
+            schema:
+              type: integer
+              format: int32
+          401:
+            description: Not authorized
+          404:
+            description: Group does not exist
   definitions:
     Group:
       type: object
@@ -241,7 +471,10 @@
         seed:
           type: string
           readOnly: true
-    GroupUser:
+        seed_img:
+          type: string
+          readOnly: true
+    Member:
       type: object
       properties:
         dom_name:
@@ -250,3 +483,14 @@
           type: string
         admin:
           type: boolean
+    Service:
+      type: object
+      properties:
+        name:
+          type: string
+        access:
+          type: string
+          readOnly: true
+        secret:
+          type: string
+          readOnly: true

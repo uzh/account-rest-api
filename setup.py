@@ -27,8 +27,19 @@ from setuptools import setup
 
 version = "0.2"
 
-requirements = ["click", "click-log", "psutil", "sqlalchemy", "connexion", "flask-cors", "gunicorn", "pyotp", "python-ldap"]
-test_requirements = ["pytest", "tox"]
+requirements = ["click",
+                "click-log",
+                "psutil",
+                "sqlalchemy",
+                "connexion",
+                "flask-cors",
+                "gunicorn",
+                "pyotp",
+                "cryptography",
+                "python-ldap"]
+
+test_requirements = ["pytest",
+                     "tox"]
 
 if sys.argv[-1] == "tag":
     os.system("git tag -a {0} -m 'version {1}'".format(version, version))

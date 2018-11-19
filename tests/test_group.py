@@ -27,14 +27,14 @@ from app import AccountRestService
 
 
 def insert_user_and_group(client, postfix=None):
-    lg = client.post('/api/groups', json={'name': "test_group{0}".format(postfix),
-                                          'principle_investigator': 'test_pi',
-                                          'active': True})
+    lg = client.post('/api/v1/groups', json={'name': "test_group{0}".format(postfix),
+                                             'principle_investigator': 'test_pi',
+                                             'active': True})
     assert 201 == lg.status_code
     group = json.loads(lg.data)
     assert group['id'] is not None
-    lg = client.post('/api/user', json={'dom_name': "test_user{0}".format(postfix),
-                                        'full_name': 'test user'})
+    lg = client.post('/api/v1/user', json={'dom_name': "test_user{0}".format(postfix),
+                                           'full_name': 'test user'})
     assert 201 == lg.status_code
     user = json.loads(lg.data)
     assert user['id'] is not None
@@ -51,7 +51,7 @@ def client():
 
 
 def test_add_group_fails_for_non_admin(client):
-    lg = client.post('/api/groups', json={'name': 'test_group', 'principle_investigator': 'test_pi', 'active': True})
+    lg = client.post('/api/v1/groups', json={'name': 'test_group', 'principle_investigator': 'test_pi', 'active': True})
     assert 401 == lg.status_code
 
 
@@ -59,12 +59,12 @@ def test_add_user_to_group(client):
     with client.session_transaction() as session:
         session['admin'] = True
     user, group = insert_user_and_group(client, '_1')
-    lg = client.get("/api/groups/{0}".format(group['id']))
+    lg = client.get("/api/v1/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
-    lg = client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
+    lg = client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
     assert 201 == lg.status_code
-    lg = client.get("/api/groups/{0}".format(group['id']))
+    lg = client.get("/api/v1/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert len(json.loads(lg.data)) == 1
 
@@ -73,11 +73,11 @@ def test_retrieve_groups_as_user(client):
     with client.session_transaction() as session:
         session['admin'] = True
     user, group = insert_user_and_group(client, '_2')
-    client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
+    client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
     with client.session_transaction() as session:
         session['admin'] = None
         session['username'] = user['dom_name']
-    lg = client.get('/api/groups')
+    lg = client.get('/api/v1/groups')
     assert 200 == lg.status_code
     assert group['name'] == json.loads(lg.data)[0]['name']
 
@@ -86,9 +86,9 @@ def test_add_remove_user_from_group(client):
     with client.session_transaction() as session:
         session['admin'] = True
     user, group = insert_user_and_group(client, '_3')
-    client.post("/api/groups/{0}?admin=False".format(group['id']), json=user)
-    lg = client.delete("/api/groups/{0}".format(group['id']), json=user)
+    client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
+    lg = client.delete("/api/v1/groups/{0}".format(group['id']), json=user)
     assert 200 == lg.status_code
-    lg = client.get("/api/groups/{0}".format(group['id']))
+    lg = client.get("/api/v1/groups/{0}".format(group['id']))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)

@@ -21,9 +21,14 @@
 
 import configparser
 import logging
+import random
 
 from pathlib import Path
 from os.path import exists, dirname, expandvars, expanduser
+
+from cryptography.fernet import Fernet
+
+allowed_chars = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
 class DefaultConfig(object):
@@ -33,27 +38,29 @@ class DefaultConfig(object):
         config = configparser.ConfigParser()
         config.add_section('general')
         config.set('general', 'CORS', 'False')
-        config.set('general', 'secret', 'change-me-please')
+        config.set('general', 'secret', ''.join(random.choice(allowed_chars) for c in range(14)))
         config.set('general', 'port', '8080')
         config.set('general', 'debug', 'False')
-        config.set('general', 'auth', 'ldap')
+        # config.set('general', 'auth', 'ldap')
 
-        # config.add_section('token')
-        # config.set('token', 'secret', 'super-secret-key-please-change')
-        # config.set('token', 'name', 'auth-token')
-        # config.set('token', 'location', 'cookie')
+        config.add_section('admin')
+        config.set('admin', 'access', ''.join(random.choice(allowed_chars) for c in range(16)))
+        config.set('admin', 'secret', Fernet.generate_key().decode('utf-8'))
+
+        config.add_section('token')
+        config.set('token', 'timeout', '86400')
 
         config.add_section('database')
         config.set('database', 'connection', 'mysql://root:password@localhost:3306/accounting')
 
-        config.add_section('ldap')
-        config.set('ldap', 'host', 'localhost')
-        config.set('ldap', 'port', '389')
-        config.set('ldap', 'schema', 'ldap')
-        config.set('ldap', 'domain', 'example.com')
-        config.set('ldap', 'search_base', 'OU=Domain Users,DC=example,DC=com')
-        config.set('ldap', 'administrator_groups', '')
-        config.set('ldap', 'required_groups', '')
+        # config.add_section('ldap')
+        # config.set('ldap', 'host', 'localhost')
+        # config.set('ldap', 'port', '389')
+        # config.set('ldap', 'schema', 'ldap')
+        # config.set('ldap', 'domain', 'example.com')
+        # config.set('ldap', 'search_base', 'OU=Domain Users,DC=example,DC=com')
+        # config.set('ldap', 'administrator_groups', '')
+        # config.set('ldap', 'required_groups', '')
 
         config.add_section('accounting')
         config.set('general', 'uid_init', '2000')
@@ -108,6 +115,9 @@ class Config(object):
 
     def general(self):
         return self._fetch('general')
+
+    def admin(self):
+        return self._fetch('admin')
 
     def token(self):
         return self._fetch('token')
