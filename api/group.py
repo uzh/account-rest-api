@@ -27,7 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin, is_group_admin
 from app import AccountRestService
-from db.group import GroupUser, Group
+from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
 
@@ -35,66 +35,81 @@ logger = logging.getLogger('api.account')
 auth = AccountRestService.auth
 
 
-def get_groups(active, limit=50):
+def get_groups(active=False):
     if not is_admin():
         return NoContent, 401
-    groups = db_session.query(Group)
-    if not active:
-        return [g.dump() for g in groups][:limit]
-    return [g.dump() for g in groups if g.active][:limit]
+    if active:
+        groups = [g.dump() for g in db_session.query(Group).all() if g.active]
+    else:
+        groups = [g.dump() for g in db_session.query(Group).all()]
+    for i in range(len(groups)):
+        groups[i]['id'] += int(AccountRestService.config.accounting().get('gid_init'))
+    return groups
 
 
 @auth.login_required
 def add_group(group):
     if not is_admin():
         return NoContent, 401
+    u = db_session.query(User).filter(User.dom_name == group['dom_name']).one_or_none()
+    if not u:
+        return "could not find user {0} for ownership".format(group['dom_name']), 404
+    group.pop('dom_name', None)
     try:
-        db_session.add(Group(**group))
+        db_session.add(Group(**group, user_id=u.id))
         db_session.commit()
-        return 201
+        return NoContent, 201
     except SQLAlchemyError:
         logger.exception("error while creating group")
         return NoContent, 500
 
 
 @auth.login_required
-def update_group(group_update):
-    if not is_group_admin(group_update.name):
+def update_group(gid, group_update):
+    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    if not is_group_admin(gid):
         return NoContent, 401
-    group = db_session.query(Group).filter(Group.name == group_update.name).one_or_none()
+    group = db_session.query(Group).filter(Group.id == gid).one_or_none()
+    group.pop('id', None)
     try:
         for k in group_update:
             setattr(group, k, group_update[k])
         db_session.commit()
-        return NoContent, 201
+        return NoContent, 200
     except SQLAlchemyError:
         logger.exception("error while updating group")
         return NoContent, 500
 
 
 @auth.login_required
-def get_group_users(name):
+def get_group_users(gid):
+    gid -= int(AccountRestService.config.accounting().get('gid_init'))
     if not is_admin():
-        if 'username' not in session or not db_session.query(GroupUser).filter(GroupUser.group.name == name and GroupUser.user.dom_name == session['username']).one_or_none():
-            logger.warning("user {0} not found as part of group".format(session['username'], name))
+        user = None
+        if 'username' in session:
+            user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
+        if not user or not db_session.query(Member).filter(Member.group_id == gid and Member.user_id == user.id).one_or_none():
+            logger.warning("user {0} not found as part of group".format(session['username']))
             return NoContent, 401
     users = []
-    for group_users in db_session.query(GroupUser).filter(GroupUser.group.name == name).all():
-        for group_user in group_users:
-            users.append(dict(dom_name=group_user.user.dom_name, full_name=group_user.user.full_name, admin=group_user.admin))
+    for group_user in db_session.query(Member).filter(Member.group_id == gid).all():
+        gu = db_session.query(User).filter(User.id == group_user.user_id).one_or_none()
+        if gu:
+            users.append(dict(dom_name=gu.dom_name, full_name=gu.full_name, logon_name=gu.logon_name, admin=group_user.admin))
     return users, 200
 
 
 @auth.login_required
-def add_group_user(user_name, group_name, admin):
-    if not is_group_admin(group_name):
+def add_group_user(gid, user, admin):
+    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    if not is_group_admin(gid):
         return NoContent, 401
-    user = db_session.query(User).filter(User.dom_name == user_name).one_or_none()
+    user = db_session.query(User).filter(User.dom_name == user).one_or_none()
     if not user:
         return 'User does not exist', 404
-    group = db_session.query(Group).filter(Group.name == group_name).one()
+    group = db_session.query(Group).filter(Group.id == gid).one()
     try:
-        db_session.add(GroupUser(group=group, user=user, admin=admin))
+        db_session.add(Member(group=group, user=user, admin=admin))
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
@@ -103,15 +118,16 @@ def add_group_user(user_name, group_name, admin):
 
 
 @auth.login_required
-def remove_group_user(user_name, group_name):
-    if not is_group_admin(group_name):
+def remove_group_user(gid, user):
+    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    if not is_group_admin(gid):
         return NoContent, 401
-    user = db_session.query(User).filter(User.dom_name == user_name).one_or_none()
+    user = db_session.query(User).filter(User.dom_name == user).one_or_none()
     if not user:
         return 'User does not exist', 404
-    group = db_session.query(Group).filter(Group.name == group_name).one()
+    group = db_session.query(Group).filter(Group.id == gid).one()
     try:
-        db_session.query(GroupUser).filter(GroupUser.group == group and GroupUser.user == user).delete()
+        db_session.query(Member).filter(Member.group == group and Member.user == user).delete()
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:

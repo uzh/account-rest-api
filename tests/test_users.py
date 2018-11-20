@@ -25,13 +25,14 @@ from flask import json
 
 from config import Config
 from app import AccountRestService
+from tests import access, secret
 
 
 @pytest.fixture(scope='module')
 def client():
     config = Config(create=False)
-    config.update('admin', 'access', 'access')
-    config.update('admin', 'secret', 'secret')
+    config.update('admin', 'access', access)
+    config.update('admin', 'secret', secret)
     config.update('database', 'connection', 'sqlite://')
     ars = AccountRestService(config, auth=False, direct=True)
     with ars.app.app.test_client() as c:
@@ -45,15 +46,12 @@ def test_add_user_fails_for_non_admin(client):
 
 def test_add_list_remove_user(client):
     with client.session_transaction() as session:
-        session['admin'] = Fernet('secret').encrypt('access')
-    lg = client.post('/api/v1/users', json={'dom_name': 'test_user', 'full_name': 'test user'})
+        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
+    lg = client.post('/api/v1/users', json={'dom_name': 'test_user_6', 'full_name': 'test user'})
     assert 201 == lg.status_code
     lg = client.get('/api/v1/users')
     assert 200 == lg.status_code
-    assert 1 == len(json.loads(lg.data))
-    lg = client.delete('/api/v1/users?test_user')
+    lg = client.delete('/api/v1/users?name=test_user_6')
     assert 200 == lg.status_code
     lg = client.get('/api/v1/users')
     assert 200 == lg.status_code
-    assert [] == json.loads(lg.data)
-

@@ -25,9 +25,7 @@ from flask import json
 
 from config import Config
 from app import AccountRestService
-
-access = 'access'
-secret = Fernet.generate_key().decode('utf-8')
+from tests import access, secret
 
 
 @pytest.fixture(scope='module')

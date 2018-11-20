@@ -20,30 +20,19 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
+from cryptography.fernet import Fernet
 from flask import json
 
 from config import Config
 from app import AccountRestService
-
-
-def insert_user_and_group(client, postfix=None):
-    lg = client.post('/api/v1/groups', json={'name': "test_group{0}".format(postfix),
-                                             'principle_investigator': 'test_pi',
-                                             'active': True})
-    assert 201 == lg.status_code
-    group = json.loads(lg.data)
-    assert group['id'] is not None
-    lg = client.post('/api/v1/user', json={'dom_name': "test_user{0}".format(postfix),
-                                           'full_name': 'test user'})
-    assert 201 == lg.status_code
-    user = json.loads(lg.data)
-    assert user['id'] is not None
-    return user, group
+from tests import access, secret
 
 
 @pytest.fixture(scope='module')
 def client():
     config = Config(create=False)
+    config.update('admin', 'access', access)
+    config.update('admin', 'secret', secret)
     config.update("database", "connection", "sqlite://")
     ars = AccountRestService(config, auth=False, direct=True)
     with ars.app.app.test_client() as c:
@@ -51,44 +40,92 @@ def client():
 
 
 def test_add_group_fails_for_non_admin(client):
-    lg = client.post('/api/v1/groups', json={'name': 'test_group', 'principle_investigator': 'test_pi', 'active': True})
+    with client.session_transaction() as session:
+        if 'admin' in session:
+            del(session['admin'])
+    lg = client.post('/api/v1/groups', json={'name': 'test_group', 'dom_name': 'test_pi', 'active': True})
     assert 401 == lg.status_code
 
 
-def test_add_user_to_group(client):
+def test_add_list_remove_user_from_group(client):
     with client.session_transaction() as session:
-        session['admin'] = True
-    user, group = insert_user_and_group(client, '_1')
-    lg = client.get("/api/v1/groups/{0}".format(group['id']))
-    assert 200 == lg.status_code
-    assert [] == json.loads(lg.data)
-    lg = client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
+        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
+    dom_name = 'test_pi_1'
+    group_name = 'test_group_1'
+    user_name = 'test_user_1'
+    lg = client.post('/api/v1/users', json={'dom_name': dom_name, 'full_name': 'test pi'})
     assert 201 == lg.status_code
-    lg = client.get("/api/v1/groups/{0}".format(group['id']))
-    assert 200 == lg.status_code
-    assert len(json.loads(lg.data)) == 1
-
-
-def test_retrieve_groups_as_user(client):
-    with client.session_transaction() as session:
-        session['admin'] = True
-    user, group = insert_user_and_group(client, '_2')
-    client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
-    with client.session_transaction() as session:
-        session['admin'] = None
-        session['username'] = user['dom_name']
+    lg = client.post('/api/v1/groups', json={'name': group_name, 'dom_name': dom_name, 'active': True})
+    assert 201 == lg.status_code
+    lg = client.post('/api/v1/users', json={'dom_name': user_name, 'full_name': 'test user'})
+    assert 201 == lg.status_code
     lg = client.get('/api/v1/groups')
     assert 200 == lg.status_code
-    assert group['name'] == json.loads(lg.data)[0]['name']
-
-
-def test_add_remove_user_from_group(client):
-    with client.session_transaction() as session:
-        session['admin'] = True
-    user, group = insert_user_and_group(client, '_3')
-    client.post("/api/v1/groups/{0}?admin=False".format(group['id']), json=user)
-    lg = client.delete("/api/v1/groups/{0}".format(group['id']), json=user)
-    assert 200 == lg.status_code
-    lg = client.get("/api/v1/groups/{0}".format(group['id']))
+    group_id = None
+    for g in json.loads(lg.data):
+        if g['name'] == group_name:
+            group_id = int(g['id'])
+    lg = client.get("/api/v1/groups/{0}".format(group_id))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
+    lg = client.put("/api/v1/groups/{0}?user={1}&admin=False".format(group_id, user_name))
+    assert 201 == lg.status_code
+    lg = client.get("/api/v1/groups/{0}".format(group_id))
+    assert 200 == lg.status_code
+    assert 1 == len(json.loads(lg.data))
+    lg = client.delete("/api/v1/groups/{0}?user={1}".format(group_id, user_name))
+    assert 200 == lg.status_code
+    lg = client.get("/api/v1/groups/{0}".format(group_id))
+    assert 200 == lg.status_code
+    assert 0 == len(json.loads(lg.data))
+
+
+def test_retrieve_group_users_as_user(client):
+    with client.session_transaction() as session:
+        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
+    dom_name = 'test_pi_2'
+    group_name = 'test_group_2'
+    user_name = 'test_user_2'
+    lg = client.post('/api/v1/users', json={'dom_name': dom_name, 'full_name': 'test pi'})
+    assert 201 == lg.status_code
+    lg = client.post('/api/v1/groups', json={'name': group_name, 'dom_name': dom_name, 'active': True})
+    assert 201 == lg.status_code
+    lg = client.post('/api/v1/users', json={'dom_name': user_name, 'full_name': 'test user'})
+    assert 201 == lg.status_code
+    lg = client.get('/api/v1/groups')
+    assert 200 == lg.status_code
+    group_id = None
+    for g in json.loads(lg.data):
+        if g['name'] == group_name:
+            group_id = int(g['id'])
+    lg = client.get("/api/v1/groups/{0}".format(group_id))
+    assert 200 == lg.status_code
+    assert [] == json.loads(lg.data)
+    lg = client.put("/api/v1/groups/{0}?user={1}&admin=False".format(group_id, user_name))
+    assert 201 == lg.status_code
+    with client.session_transaction() as session:
+        del(session['admin'])
+        session['username'] = user_name
+    lg = client.get("/api/v1/groups/{0}".format(group_id))
+    assert 200 == lg.status_code
+
+
+def test_user_list_groups(client):
+    with client.session_transaction() as session:
+        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
+    dom_name = 'test_pi_3'
+    group_name = 'test_group_3'
+    user_name = 'test_user_3'
+    client.post('/api/v1/users', json={'dom_name': dom_name, 'full_name': 'test pi'})
+    client.post('/api/v1/groups', json={'name': group_name, 'dom_name': dom_name, 'active': True})
+    client.post('/api/v1/users', json={'dom_name': user_name, 'full_name': 'test user'})
+    lg = client.get('/api/v1/groups')
+    group_id = None
+    for g in json.loads(lg.data):
+        if g['name'] == group_name:
+            group_id = int(g['id'])
+    lg = client.put("/api/v1/groups/{0}?user={1}&admin=False".format(group_id, user_name))
+    assert 201 == lg.status_code
+    with client.session_transaction() as session:
+        del(session['admin'])
+        session['username'] = user_name

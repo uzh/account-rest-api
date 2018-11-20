@@ -33,38 +33,32 @@ group_resources = Table('group_resources',
                         Column('resource_id', Integer, ForeignKey('resources.id')))
 
 
-class Owner(Base):
-    __tablename__ = 'owners'
-    user_id = Column(Integer, ForeignKey(User.id))
-    postal_code = Column(String(10))
-    city = Column(String(255))
-    country = Column(String(2))
-
-    user = relationship('User', foreign_keys='Owner.user_id')
-
-
 class Group(Base):
     __tablename__ = 'groups'
     name = Column(String(100), unique=True)
 
-    owner_id = Column(Integer, ForeignKey(Owner.id))
-    active = Column(Boolean)
+    user_id = Column(Integer, ForeignKey(User.id))
 
-    owner = relationship('Owner', foreign_keys='Group.owner_id')
+    active = Column(Boolean)
+    postal_code = Column(String(10))
+    city = Column(String(255))
+    country = Column(String(2))
+
+    user = relationship('User', foreign_keys='Group.user_id')
 
     resources = relationship("Resource", secondary=group_resources, back_populates="groups")
 
 
-class GroupUser(Base):
-    __tablename__ = 'group_users'
+class Member(Base):
+    __tablename__ = 'members'
 
     group_id = Column(Integer, ForeignKey('groups.id'))
     user_id = Column(Integer, ForeignKey('users.id'))
     admin = Column(Boolean, nullable=False)
 
-    group = relationship(Group, backref="group_users")
-    user = relationship(User, backref="group_users")
+    group = relationship(Group, backref="members")
+    user = relationship(User, backref="members")
 
 
-Group.users = association_proxy("group_users", "users")
-User.accounts = association_proxy("group_users", "groups")
+Group.users = association_proxy("members", "users")
+User.accounts = association_proxy("members", "groups")

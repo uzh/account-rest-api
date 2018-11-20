@@ -26,5 +26,5 @@ class AccountingBase(object):
     id = Column(Integer, primary_key=True)
 
     def dump(self):
-        return dict([(k, v) for k, v in vars(self).items() if not k.startswith("_") and k != 'id'])
+        return dict([(k, v) for k, v in vars(self).items() if not k.startswith("_")])
 

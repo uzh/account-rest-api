@@ -28,7 +28,7 @@ from cryptography.fernet import Fernet
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import AccountRestService
-from db.group import Group, GroupUser
+from db.group import Group, Member
 from db.handler import db_session
 from db.service import Service
 from db.user import User
@@ -52,7 +52,7 @@ def is_admin():
             user = u.filter(User.dom_name == session['username']).one_or_none()
             if user:
                 group = db_session.query(Group).filter(Group.name == 'admins').one()
-                if db_session.query(GroupUser).filter(GroupUser.group == group and GroupUser.user == user).one_or_none():
+                if db_session.query(Member).filter(Member.group == group and Member.user == user).one_or_none():
                     return True
         return False
 
@@ -60,25 +60,37 @@ def is_admin():
 def is_group_admin(group):
     """
     inclusive search of admins and group admins
-    :param group: name of the group to check
+    :param group: name or id of the group to check, note that it's the database uid (- uid_init)
     :return: admin yes/no
     """
-    if not is_admin():
+    if is_admin():
+        return True
+    if 'username' in session:
+        user = None
         if 'username' in session:
-            if db_session.query(GroupUser).filter(GroupUser.group.name == group and GroupUser.user.dom_name == session['username'] and GroupUser.admin).one_or_none():
+            user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
+        if not user:
+            return False
+        if isinstance(group, int):
+            if db_session.query(Member).filter(Member.group_id == group and Member.user_id == user.id and Member.admin).one_or_none():
+                return True
+        else:
+            group = db_session.query(Group).filter(Group.name == group).one_or_none()
+            if not group:
+                return False
+            if db_session.query(Member).filter(Member.group_id == group.id and Member.user_id == user.id and Member.admin).one_or_none():
                 return True
     return False
 
 
-def get_admins(limit=50):
+def get_admins():
     if not is_admin():
         return NoContent, 401
     group = db_session.query(Group).filter(Group.name == 'admins').one()
-    group_users = db_session.query(GroupUser)
     users = []
-    for group_user in group_users.filter(GroupUser.group == group).all():
+    for group_user in db_session.query(Member).filter(Member.group == group).all():
         users.append(db_session.query(User).filter(User.id == group_user.user_id).one_or_none())
-    return [u.dump() for u in users][:limit]
+    return [u.dump() for u in users]
 
 
 def add_admin(name):
@@ -89,7 +101,7 @@ def add_admin(name):
         return NoContent, 404
     group = db_session.query(Group).filter(Group.name == 'admins').one()
     try:
-        db_session.add(GroupUser(group=group, user=user, admin=True))
+        db_session.add(Member(group=group, user=user, admin=True))
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
@@ -105,7 +117,7 @@ def remove_admin(name):
         return NoContent, 404
     group = db_session.query(Group).filter(Group.name == 'admins').one()
     try:
-        db_session.query(GroupUser).filter(GroupUser.group == group and GroupUser.user == user).delete()
+        db_session.query(Member).filter(Member.group == group and Member.user == user).delete()
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:
@@ -113,10 +125,10 @@ def remove_admin(name):
         return NoContent, 500
 
 
-def get_services(limit=50):
+def get_services():
     if not is_admin():
         return NoContent, 401
-    return [dict(name=s.name, access=s.access) for s in db_session.query(Service).all()][:limit]
+    return [dict(name=s.name, access=s.access) for s in db_session.query(Service).all()], 200
 
 
 def add_service(name):
@@ -125,7 +137,7 @@ def add_service(name):
     try:
         db_session.add(Service(name=name,
                                access=''.join(random.choice(allowed_chars) for c in range(16)),
-                               secret=''.join(random.choice(allowed_chars) for c in range(32))))
+                               secret=Fernet.generate_key().decode('utf-8')))
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
@@ -140,7 +152,7 @@ def remove_service(name):
     if not service:
         return NoContent, 404
     try:
-        service.delete()
+        db_session.delete(service)
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:

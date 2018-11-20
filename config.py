@@ -63,8 +63,8 @@ class DefaultConfig(object):
         # config.set('ldap', 'required_groups', '')
 
         config.add_section('accounting')
-        config.set('general', 'uid_init', '2000')
-        config.set('general', 'gid_init', '2000')
+        config.set('accounting', 'uid_init', '2000')
+        config.set('accounting', 'gid_init', '2000')
         config.set('accounting', 'ldap_server', 'ldaps://localhost:636')
         config.set('accounting', 'ldap_user_loc', 'uid')
 

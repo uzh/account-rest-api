@@ -25,7 +25,6 @@ import pyotp
 from connexion import NoContent
 
 from app import AccountRestService
-from db.group import Group
 from db.handler import db_session
 from db.user import User
 
@@ -34,37 +33,15 @@ service_auth = AccountRestService.service_auth
 
 
 @service_auth.login_required
-def login(name, otp):
+def authenticate(logon_name, otp):
     u = db_session.query(User)
-    user = u.filter(Group.name == name).one_or_none()
+    user = u.filter(User.dom_name == logon_name).one_or_none()
     if user:
         totp = pyotp.TOTP(user.seed)
         if totp.verify(otp):
-            return name, 200
+            return user.id + int(AccountRestService.config.accounting().get('uid_init')), 200
         else:
-            logger.error("invalid otp {0} for {1}".format(otp, name))
+            logger.error("invalid otp {0} for {1}".format(otp, logon_name))
             return NoContent, 401
-    logger.warning("user {0} not found".format(name))
-    return NoContent, 404
-
-
-@service_auth.login_required
-def get_group_id(name):
-    g = db_session.query(Group)
-    group = g.filter(Group.name == name).one_or_none()
-    if group:
-        gid = group.id + int(AccountRestService.config.accounting().get('gid_init'))
-        return gid, 200
-    logger.warning("group {0} not found".format(name))
-    return NoContent, 404
-
-
-@service_auth.login_required
-def get_user_id(name):
-    u = db_session.query(User)
-    user = u.filter(Group.name == name).one_or_none()
-    if user:
-        uid = user.id + int(AccountRestService.config.accounting().get('uid_init'))
-        return uid, 200
-    logger.warning("user {0} not found".format(name))
+    logger.warning("user {0} not found".format(logon_name))
     return NoContent, 404
