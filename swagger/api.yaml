@@ -383,6 +383,16 @@
               $ref: '#/definitions/User'
           500:
             description: Internal error
+    /regen:
+      post:
+        description: Regenerate TOTP seed
+        x-swagger-router-controller: api.user
+        operationId: regen_totp
+        responses:
+          200:
+            description: Regen succeeded
+          500:
+            description: Internal error
   definitions:
     Group:
       type: object

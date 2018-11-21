@@ -41,6 +41,7 @@ class DefaultConfig(object):
         config.set('general', 'secret', ''.join(random.choice(allowed_chars) for c in range(14)))
         config.set('general', 'port', '8080')
         config.set('general', 'debug', 'False')
+        config.set('general', 'totp_issuer', 'Accounting Center')
         # config.set('general', 'auth', 'ldap')
 
         config.add_section('admin')

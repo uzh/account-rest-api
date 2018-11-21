@@ -57,9 +57,14 @@ def test_login_validation_for_service(client):
         session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
     lg = client.post('/api/v1/users', json={'dom_name': 'test_user_5', 'full_name': 'test user'})
     assert 201 == lg.status_code
-    lg = client.get('/api/v1/find?name=test_user_5')
+    with client.session_transaction() as session:
+        del(session['admin'])
+        session['username'] = 'test_user_5'
+    lg = client.get('/api/v1/me')
     assert 200 == lg.status_code
     data = json.loads(lg.data)
     totp = pyotp.TOTP(data['seed'])
+    with client.session_transaction() as session:
+        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
     lg = client.post('/api/v1/authenticate?logon_name={0}&otp={1}'.format(data['logon_name'], totp.now()))
     assert 200 == lg.status_code
