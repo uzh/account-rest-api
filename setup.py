@@ -18,10 +18,9 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
 import os
 import sys
-from os.path import exists, join
-from pathlib import Path
 
 from setuptools import setup
 
@@ -29,6 +28,7 @@ version = "0.3"
 
 requirements = ["click",
                 "click-log",
+                "python-daemon",
                 "psutil",
                 "sqlalchemy",
                 "connexion",
@@ -38,8 +38,7 @@ requirements = ["click",
                 "cryptography",
                 "python-ldap"]
 
-test_requirements = ["pytest",
-                     "tox"]
+test_requirements = ["pytest", "tox"]
 
 if sys.argv[-1] == "tag":
     os.system("git tag -a {0} -m 'version {1}'".format(version, version))
@@ -61,37 +60,9 @@ if sys.argv[-1] == "test":
     os.system('py.test')
     sys.exit()
 
-if sys.argv[-1] == "install":
-    Path.mkdir(Path("/etc/acpy"), parents=True, exist_ok=True)
-    if exists("/usr/lib/systemd/system"):
-        with open(join("/usr/lib/systemd/system", "acpy.service"), "w") as sfp:
-            sfp.write("[Unit]\n")
-            sfp.write("Description=LDAP Accounting Rest API web service\n")
-            sfp.write("After=network.target slurmctld.service\n")
-            sfp.write("\n")
-            sfp.write("[Service]\n")
-            sfp.write("Type=forking\n")
-            sfp.write("PermissionsStartOnly=true\n")
-            sfp.write("PIDFile=/var/run/ara.pid\n")
-            sfp.write("ExecStart=/usr/bin/acpy -c /etc/acpy/api.config start\n")
-            sfp.write("ExecReload=/usr/bin/acpy restart\n")
-            sfp.write("ExecStop=/usr/bin/acpy stop\n")
-            sfp.write("\n")
-            sfp.write("[Install]\n")
-            sfp.write("WantedBy=multi-user.target\n")
-    os.system("systemctl daemon-reload")
-
-try:
-    modules = map(__import__, requirements)
-except ImportError as e:
-    raise ImportError("{0} is not installed, please install it using pip.".format(
-        str(e).replace("No module named ", ""))
-    )
-
-
 setup(name="acpy",
       version=version,
-      description="Accounting Rest API",
+      description="Accounting Center API",
       long_description=open("README.md").read(),
       author="Pim Witlox",
       author_email="pim.witlox@uzh.ch",
@@ -104,7 +75,7 @@ setup(name="acpy",
       },
       packages=["api"],
       install_requires=requirements,
-      python_requires=">=3.4",
+      python_requires=">=3.5",
       keywords="Web, Python, Python3, REST",
       project_urls={
           "Documentation": "https://acpy.readthedocs.io/en/latest/",

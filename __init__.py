@@ -21,14 +21,17 @@
 
 import os
 import logging
+import pickle
 import signal
-import time
+import sys
+from logging.handlers import RotatingFileHandler
 
-from os.path import exists, expandvars
+from os.path import exists, expandvars, expanduser
 
 import click
 import click_log
 import psutil
+from daemon import daemon
 
 from gunicorn.app.base import BaseApplication
 
@@ -57,9 +60,14 @@ class GunicornApp(BaseApplication):
         return self.application
 
 
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+
 def check_pid(pid_file):
-    if pid_file and exists(expandvars(pid_file)):
-        with open(expandvars(pid_file), "r") as pfp:
+    if pid_file and exists(expandvars(expanduser(pid_file))):
+        with open(expandvars(expanduser(pid_file)), "r") as pfp:
             pid = int(pfp.read())
         if psutil.pid_exists(pid):
             return pid
@@ -67,19 +75,14 @@ def check_pid(pid_file):
 
 
 @click.group()
-@click.option("-c", "--config-file", default="/etc/acpy/api.confg", help="Specify configuration file path (creates if not exists)")
-@click.option("--spew/--no-spew", default=False, help="spew all messages, really noisy (default --no-spew)")
-@click.option("--auth/--no-auth", default=True, help="disable authentication (default --auth)")
-@click.option("--direct", is_flag=True, help="don't use gunicorn wrapper")
+@click.option('-c', '--config-file', default='~/.acpy/api.config', help='Specify configuration file path (creates if not exists)')
 @click.pass_context
 @click_log.simple_verbosity_option(logger)
-def cli(ctx, config_file, spew, auth, direct):
+def cli(ctx, config_file):
     """
     This CLI allows you to manage the Accounting Center API, this service will run in the background.
     The service is wrapped by gunicorn, and these commands allow you to control the gunicorn master process.
-    Check your config file for settings, the default location is in your home folder under `/etc/acpy`.
-    This service enables HTTPS by default, so stick it behind a proxy (we recommend nginx).
-    Use the --no-https flag only for testing, never in production!
+    Check your config file for settings, the default location is in your home folder under `~/.acpy/api.config`.
     """
     ctx.obj = {}
 
@@ -89,94 +92,67 @@ def cli(ctx, config_file, spew, auth, direct):
             if li:
                 li.setLevel(level)
 
-    if spew:
-        logger.setLevel(logging.DEBUG)
-        set_level(logging.DEBUG)
     if logger.getEffectiveLevel() == logging.DEBUG:
         set_level(logging.INFO)
     elif logger.getEffectiveLevel() == logging.INFO:
         set_level(logging.WARNING)
     elif logger.getEffectiveLevel() == logging.WARNING:
         set_level(logging.ERROR)
-    elif logger.getEffectiveLevel() == logging.ERROR:
+    else:
         set_level(logging.CRITICAL)
 
     config_file = Config(config_file)
 
+    if config_file.logging().get('log_file'):
+        handler = RotatingFileHandler(config_file.logging().get('log_file'),
+                                      mode='a',
+                                      maxBytes=int(config_file.logging().get('max_bytes')),
+                                      backupCount=int(config_file.logging().get('backup_count')))
+        logger.addHandler(handler)
+
     ctx.obj["CONFIG"] = config_file
-    ctx.obj["SRV"] = AccountRestService(config_file, auth=auth, direct=direct)
-    gu_config = config_file.gunicorn()
-    gu_config["spew"] = spew
-    if not direct:
-        ctx.obj["APP"] = GunicornApp(ctx.obj["SRV"], gu_config)
 
 
-@cli.command(help="start acpy api")
-@click.pass_context
-def start(ctx):
-    pid = check_pid(ctx.obj["CONFIG"].gunicorn().get("pidfile"))
-    if pid:
-        logger.info("rest service already running")
+def _start_direct_(srv_config, no_auth, direct, ui, background):
+    if background:
+        with daemon.DaemonContext():
+            AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).start()
     else:
-        logger.info("starting rest service")
-        if ctx.obj["APP"]:
-            ctx.obj["APP"].run()
-        else:
-            ctx.obj["SRV"].start()
+        AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).start()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.pause()
+        runtime = expandvars(expanduser(srv_config.general().get("run_time")))
+        if exists(runtime):
+            os.remove(runtime)
 
 
-@cli.command(help="rest service information")
-@click.pass_context
-def info(ctx):
-    pid = check_pid(ctx.obj["CONFIG"].gunicorn().get("pidfile"))
-    if pid:
-        logger.info("service running at {0}".format(ctx.obj["CONFIG"].gunicorn().get("bind")))
-        logger.info("*" * 33)
-        gup = psutil.Process(pid)
-        logger.info("number of cpu's: {0} ({1}%)".format(gup.cpu_num(), gup.cpu_percent()))
-        logger.info("memory info\n"
-                    "- rss    : {0}\n"
-                    "- vms    : {1}\n"
-                    "- shared : {2}\n"
-                    "- text   : {3}\n"
-                    "- lib    : {4}\n"
-                    "- data   : {5}\n"
-                    "- dirty  : {6}".format(gup.memory_info().rss,
-                                            gup.memory_info().vms,
-                                            gup.memory_info().shared,
-                                            gup.memory_info().text,
-                                            gup.memory_info().lib,
-                                            gup.memory_info().data,
-                                            gup.memory_info().dirty))
-        logger.info("connections")
-        for connection in gup.connections():
-            logger.info("- {0}".format(connection))
-        logger.info("*" * 33)
+def _stop_direct_(srv_config, no_auth, direct, ui):
+    AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).stop(signal.SIGTERM)
+
+
+def _start_gu_(srv_config, no_auth, direct, ui, background):
+    if background:
+        with daemon.DaemonContext():
+            GunicornApp(AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).app.app, srv_config.gunicorn()).run()
     else:
-        if ctx.obj["APP"]:
-            logger.warning("rest service not running, could not find pid")
-        else:
-            logger.info("started in direct mode, can't determine pid")
+        GunicornApp(AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).app.app, srv_config.gunicorn()).run()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.pause()
+        runtime = expandvars(expanduser(srv_config.general().get("run_time")))
+        if exists(runtime):
+            os.remove(runtime)
 
 
-@cli.command(help="reload rest service")
-@click.pass_context
-def reload(ctx):
-    logger.info("reloading rest service")
-    if ctx.obj["APP"]:
-        ctx.obj["APP"].reload()
+def _reload_gu_(srv_config, no_auth, direct, ui, background):
+    if background:
+        with daemon.DaemonContext():
+            GunicornApp(AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).app.app, srv_config.gunicorn()).reload()
     else:
-        ctx.obj["SRV"].stop()
-        ctx.obj["SRV"].start()
-    logger.info("reload finished")
+        GunicornApp(AccountRestService(srv_config, no_auth=no_auth, direct=direct, ui=ui).app.app, srv_config.gunicorn()).reload()
 
 
-@cli.command(help="stop rest service")
-@click.option("--force/--no-force", default=False, help="force kill service")
-@click.pass_context
-def stop(ctx, force):
-    logger.info("stopping rest service")
-    pid = check_pid(ctx.obj["CONFIG"].gunicorn().get("pidfile"))
+def _stop_gu_(pid_file, force=False):
+    pid = check_pid(pid_file)
     if pid:
         try:
             if force == 0:
@@ -186,34 +162,133 @@ def stop(ctx, force):
             logger.info("stop finished")
         except OSError as e:
             logger.error("failed to stop rest service: {0}".format(e))
-    else:
-        if ctx.obj["APP"]:
-            logger.warning("could not find pid")
+
+
+def _restart_direct_(srv_config, auth, direct, ui, background):
+    _stop_direct_(srv_config, auth, direct, ui)
+    _start_direct_(srv_config, auth, direct, ui, background)
+
+
+def _restart_gu_(srv_config, auth, direct, ui, pid_file, background):
+    _stop_gu_(pid_file)
+    _start_gu_(srv_config, auth, direct, ui, background)
+
+
+@cli.command(help="start api")
+@click.option('-d', '--direct', is_flag=True, help='do not use gunicorn wrapper')
+@click.option('-u', '--ui', is_flag=True, help='enable swagger ui (url/api/v1/ui)')
+@click.option('-b', '--background', is_flag=True, help='start as a background process')
+@click.option('-n', '--no-auth', is_flag=True, help='disable authentication')
+@click.option('-f', '--force', is_flag=True, help='force start ignoring recorded state')
+@click.pass_context
+def start(ctx, direct, ui, background, no_auth, force):
+    runtime_config = dict(direct=direct, ui=ui, background=background, no_auth=no_auth)
+    runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+    if direct:
+        if not exists(runtime) or force:
+            with open(runtime, 'wb') as f:
+                runtime_config['mode'] = 'direct'
+                pickle.dump(runtime_config, f)
+            runtime_config.pop('mode', None)
+            _start_direct_(ctx.obj["CONFIG"], **runtime_config)
         else:
-            ctx.obj["SRV"].stop()
+            logger.error("already detected running instance, please check if the process is still running")
+    else:
+        if not exists(runtime) or force:
+            with open(runtime, 'wb') as f:
+                runtime_config['mode'] = 'gunicorn'
+                pickle.dump(runtime_config, f)
+            runtime_config.pop('mode', None)
+            _start_gu_(ctx.obj["CONFIG"], **runtime_config)
+        else:
+            logger.error("already detected running instance, please check if the process is still running")
 
 
-@cli.command(help="restart rest service")
+@cli.command(help="stop api")
+@click.option("--force/--no-force", default=False, help="force kill service")
+@click.pass_context
+def stop(ctx, force):
+    runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+    if not exists(runtime):
+        logger.error("no previous instance detected")
+    else:
+        with open(runtime, 'rb') as f:
+            runtime_config = pickle.load(f)
+        if runtime_config['direct']:
+            runtime_config.pop('mode', None)
+            runtime_config.pop('background', None)
+            _stop_direct_(ctx.obj["CONFIG"], **runtime_config)
+        else:
+            _stop_gu_(ctx.obj["CONFIG"].gunicorn().get("pidfile"), force)
+        runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+        if exists(runtime):
+            os.remove(runtime)
+
+
+@cli.command(help="reload api")
+@click.pass_context
+def reload(ctx):
+    runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+    if not exists(runtime):
+        logger.error("no previous instance detected")
+    else:
+        with open(runtime, 'rb') as f:
+            runtime_config = pickle.load(f)
+        if runtime_config['mode'] == 'direct':
+            logger.warning("cannot reload instance that has been started directly")
+        else:
+            runtime_config.pop('direct', None)
+            _reload_gu_(ctx.obj["CONFIG"], **runtime_config)
+
+
+@cli.command(help="restart api")
 @click.pass_context
 def restart(ctx):
-    if ctx.obj["APP"]:
+    runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+    if not exists(runtime):
+        logger.error("no previous instance detected, cannot determine restart parameters")
+    else:
+        with open(runtime, 'rb') as f:
+            runtime_config = pickle.load(f)
+        if runtime_config['mode'] == 'direct':
+            _restart_direct_(ctx.obj["CONFIG"], **runtime_config)
+        else:
+            _restart_gu_(ctx.obj["CONFIG"], **runtime_config)
+
+
+@cli.command(help="rest service information")
+@click.pass_context
+def info(ctx):
+    runtime = expandvars(expanduser(ctx.obj["CONFIG"].general().get("run_time")))
+    if not exists(runtime):
+        logger.warning("no previous instance detected, cannot determine restart parameters")
+    else:
+        with open(runtime, 'rb') as f:
+            runtime_config = pickle.load(f)
+        logger.info("*" * 33)
+        for key in runtime_config:
+            logger.info("{0} : {1}".format(key, runtime_config[key]))
+
         pid = check_pid(ctx.obj["CONFIG"].gunicorn().get("pidfile"))
         if pid:
-            logger.info("stopping rest service")
-            try:
-                os.kill(pid, signal.SIGTERM)
-                time.sleep(3)
-                logger.info("stop finished, restarting rest service")
-                ctx.obj["APP"].run()
-            except OSError as e:
-                logger.error("failed to restart rest service: {0}".format(e))
-        else:
-            logging.info("rest service not running, starting it.")
-            ctx.obj["APP"].run()
-    else:
-        ctx.obj["SRV"].stop()
-        ctx.obj["SRV"].start()
-        logger.info("restart finished")
+            logger.info("service running at {0}".format(ctx.obj["CONFIG"].gunicorn().get("bind")))
+            logger.info("*" * 33)
+            gup = psutil.Process(pid).as_dict(attrs=['pid', 'username', 'cpu_percent', 'name', 'memory_info', 'connections'])
+            logger.info("CPU usage: {0}%".format(gup['cpu_percent']))
+            logger.info("-" * 20)
+            logger.info("memory info\n"
+                        "- rss         : {0}\n"
+                        "- vms         : {1}\n"
+                        "- page faults : {2}\n"
+                        "- page ins    : {3}".format(gup['memory_info'].rss,
+                                                     gup['memory_info'].vms,
+                                                     gup['memory_info'].pfaults,
+                                                     gup['memory_info'].pageins))
+            logger.info("-" * 20)
+            logger.info("connections")
+            for connection in gup['connections']:
+                logger.info("- {0}".format(connection))
+        logger.info("*" * 33)
 
 
 if __name__ == "__main__":

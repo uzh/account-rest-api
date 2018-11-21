@@ -27,9 +27,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from auth import NoAuth
 from auth.access_secret import AccessSecretToken
-from auth.ldap import LDAP
 from db.group import Group
-from db.handler import init_db, db_session
+from db.handler import init_db
 from db.service import Service
 
 
@@ -41,7 +40,7 @@ class AccountRestService(object):
     service_auth = None
     config = None
 
-    def __init__(self, config, auth=True, direct=False):
+    def __init__(self, config, no_auth=False, direct=False, ui=False):
         """
         Service wrapper for our Gunicorn and Flask
         :param config: our configuration object
@@ -52,12 +51,15 @@ class AccountRestService(object):
         self.direct = direct
         self.logger.debug("initializing database")
         session = init_db(self.config.database().get('connection'))
+        if ui:
+            self.logger.warning("enabling UI")
+        options = {"swagger_ui": ui}
         if direct:
-            self.logger.info("direct initialization requested")
-            self.app = connexion.FlaskApp(__name__, specification_dir='swagger/')
+            self.logger.info("direct request")
+            self.app = connexion.FlaskApp(__name__, specification_dir='swagger/', options=options)
         else:
-            self.logger.info("initializing gunicorn application")
-            self.app = connexion.FlaskApp(__name__, port=self.config.general.get('port'), specification_dir='swagger/', server='gunicorn')
+            self.logger.info("gunicorn application")
+            self.app = connexion.FlaskApp(__name__, port=self.config.general().get('port'), specification_dir='swagger/', server='gunicorn', options=options)
         self.app.app.secret_key = self.config.general().get('secret')
         # primary authentication tables
         try:
@@ -76,26 +78,13 @@ class AccountRestService(object):
                 session.commit()
         except SQLAlchemyError:
             self.logger.exception('failed to add admin group')
-        if auth:
-            # add service authentication
-            AccountRestService.service_auth = AccessSecretToken(self.config)
-            self.app.app.add_url_rule('/service', 'service', AccountRestService.service_auth.authorize(), methods=['POST'])
-
-            if self.config.general().get('auth'):
-                # self.logger.info("initializing LDAP authorization")
-                # login_path = 'login'
-                # self.app.app.config['LDAP_LOGIN_PATH'] = login_path
-                # AccountRestService.auth = LDAP(self.app.app, self.config)
-                # self.app.app.add_url_rule("/{0}".format(login_path),
-                #                           login_path,
-                #                           AccountRestService.auth.login,
-                #                           methods=['POST'])
-                pass
-
-        else:
+        if no_auth:
             self.logger.warning("authorization disabled")
             AccountRestService.auth = NoAuth()
             AccountRestService.service_auth = NoAuth()
+        else:
+            AccountRestService.auth = NoAuth()
+            AccountRestService.service_auth = AccessSecretToken()
         self.logger.debug("initializing routes")
         self.app.add_api('api.yaml')
         if self.config.general().get('CORS'):
@@ -104,7 +93,7 @@ class AccountRestService(object):
 
     def start(self):
         """ A hook to when a Gunicorn worker calls run()."""
-        self.logger.info("started accounting rest api")
+        self.logger.info("started api")
         if self.direct:
             self.app.run(port=self.config.general().get('port'), debug=self.config.general().get('debug'))
         else:
@@ -112,4 +101,4 @@ class AccountRestService(object):
 
     def stop(self, signal):
         """ A hook to when a Gunicorn worker starts shutting down. """
-        self.logger.info("stopped accounting rest api")
+        self.logger.info("stopped api")
