@@ -75,16 +75,11 @@ def check_pid(pid_file):
 @click_log.simple_verbosity_option(logger)
 def cli(ctx, config_file, spew, auth, direct):
     """
-    This CLI allows you to manage the Accounting Rest API, this service will run in the background.
+    This CLI allows you to manage the Accounting Center API, this service will run in the background.
     The service is wrapped by gunicorn, and these commands allow you to control the gunicorn master process.
     Check your config file for settings, the default location is in your home folder under `/etc/acpy`.
     This service enables HTTPS by default, so stick it behind a proxy (we recommend nginx).
     Use the --no-https flag only for testing, never in production!
-    :param ctx: our context
-    :param config_file: our configuration file
-    :param spew: very noisy debugging
-    :param auth: enable/disable authentication mechanism
-    :param direct: don't user Gunicorn
     """
     ctx.obj = {}
 
