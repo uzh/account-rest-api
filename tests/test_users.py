@@ -21,7 +21,6 @@
 
 import pytest
 from cryptography.fernet import Fernet
-from flask import json
 
 from config import Config
 from app import AccountRestService

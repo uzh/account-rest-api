@@ -67,7 +67,7 @@ def check_pid(pid_file):
 
 
 @click.group()
-@click.option("-c", "--config-file", default="/etc/accounting-rest/api.confg", help="Specify configuration file path (creates if not exists)")
+@click.option("-c", "--config-file", default="/etc/acpy/api.confg", help="Specify configuration file path (creates if not exists)")
 @click.option("--spew/--no-spew", default=False, help="spew all messages, really noisy (default --no-spew)")
 @click.option("--auth/--no-auth", default=True, help="disable authentication (default --auth)")
 @click.option("--direct", is_flag=True, help="don't use gunicorn wrapper")
@@ -77,7 +77,7 @@ def cli(ctx, config_file, spew, auth, direct):
     """
     This CLI allows you to manage the Accounting Rest API, this service will run in the background.
     The service is wrapped by gunicorn, and these commands allow you to control the gunicorn master process.
-    Check your config file for settings, the default location is in your home folder under `.accounting-rest`.
+    Check your config file for settings, the default location is in your home folder under `/etc/acpy`.
     This service enables HTTPS by default, so stick it behind a proxy (we recommend nginx).
     Use the --no-https flag only for testing, never in production!
     :param ctx: our context
@@ -116,7 +116,7 @@ def cli(ctx, config_file, spew, auth, direct):
         ctx.obj["APP"] = GunicornApp(ctx.obj["SRV"], gu_config)
 
 
-@cli.command(help="start accounting-rest api")
+@cli.command(help="start acpy api")
 @click.pass_context
 def start(ctx):
     pid = check_pid(ctx.obj["CONFIG"].gunicorn().get("pidfile"))

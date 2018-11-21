@@ -25,7 +25,7 @@ from pathlib import Path
 
 from setuptools import setup
 
-version = "0.2"
+version = "0.3"
 
 requirements = ["click",
                 "click-log",
@@ -62,9 +62,9 @@ if sys.argv[-1] == "test":
     sys.exit()
 
 if sys.argv[-1] == "install":
-    Path.mkdir(Path("/etc/accounting-rest"), parents=True, exist_ok=True)
+    Path.mkdir(Path("/etc/acpy"), parents=True, exist_ok=True)
     if exists("/usr/lib/systemd/system"):
-        with open(join("/usr/lib/systemd/system", "accounting-rest.service"), "w") as sfp:
+        with open(join("/usr/lib/systemd/system", "acpy.service"), "w") as sfp:
             sfp.write("[Unit]\n")
             sfp.write("Description=LDAP Accounting Rest API web service\n")
             sfp.write("After=network.target slurmctld.service\n")
@@ -73,9 +73,9 @@ if sys.argv[-1] == "install":
             sfp.write("Type=forking\n")
             sfp.write("PermissionsStartOnly=true\n")
             sfp.write("PIDFile=/var/run/ara.pid\n")
-            sfp.write("ExecStart=/usr/bin/accounting-rest -c /etc/accounting-rest/api.config start\n")
-            sfp.write("ExecReload=/usr/bin/accounting-rest restart\n")
-            sfp.write("ExecStop=/usr/bin/accounting-rest stop\n")
+            sfp.write("ExecStart=/usr/bin/acpy -c /etc/acpy/api.config start\n")
+            sfp.write("ExecReload=/usr/bin/acpy restart\n")
+            sfp.write("ExecStop=/usr/bin/acpy stop\n")
             sfp.write("\n")
             sfp.write("[Install]\n")
             sfp.write("WantedBy=multi-user.target\n")
@@ -89,17 +89,17 @@ except ImportError as e:
     )
 
 
-setup(name="accounting-rest",
+setup(name="acpy",
       version=version,
       description="Accounting Rest API",
       long_description=open("README.md").read(),
       author="Pim Witlox",
       author_email="pim.witlox@uzh.ch",
-      url="https://github.com/uzh/accounting-rest-api",
+      url="https://github.com/uzh/acpy",
       license="GPLv3",
       entry_points={
           "console_scripts": [
-              "accounting-rest = __init__:cli",
+              "acpy = __init__:cli",
           ]
       },
       packages=["api"],
@@ -107,9 +107,9 @@ setup(name="accounting-rest",
       python_requires=">=3.4",
       keywords="Web, Python, Python3, REST",
       project_urls={
-          "Documentation": "https://accounting-rest-api.readthedocs.io/en/latest/",
-          "Source": "https://github.com/uzh/accounting-rest-api/",
-          "Tracker": "https://github.com/uzh/accounting-rest-api/issues",
+          "Documentation": "https://acpy.readthedocs.io/en/latest/",
+          "Source": "https://github.com/uzh/acpy/",
+          "Tracker": "https://github.com/uzh/acpy/issues",
       },
       test_suite="tests",
       tests_require=test_requirements,
