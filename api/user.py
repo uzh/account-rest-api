@@ -21,20 +21,18 @@
 
 import logging
 
-import pyotp
 from connexion import NoContent
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin
-from app import AccountRestService
+from app import auth, config
 from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
 
 
 logger = logging.getLogger('api.user')
-auth = AccountRestService.auth
 
 
 def generate_username(dom_name):
@@ -76,12 +74,11 @@ def get_user_with_groups(uid):
         logger.warning("user with id {0} not found".format(uid))
         return None
     user = user.dump()
-    user['id'] += int(AccountRestService.config.accounting().get('uid_init'))
-    user.pop('seed', None)
+    user['id'] += int(config.accounting().get('uid_init'))
     user['groups'] = []
     for member in db_session.query(Member).filter(Member.user_id == uid).all():
         group = db_session.query(Group).filter(Group.id == member.group_id).one().dump()
-        group['id'] += int(AccountRestService.config.accounting().get('gid_init'))
+        group['id'] += int(config.accounting().get('gid_init'))
         user['groups'].append(group)
     return user
 
@@ -111,7 +108,6 @@ def find_groups(admin=False):
 def add_user(user):
     if not is_admin():
         return NoContent, 401
-    user['seed'] = pyotp.random_base32()
     logon_name = generate_username(user['dom_name'])
     if not logon_name:
         logger.error("could not generate a logon name for {0}".format(user))
@@ -177,25 +173,4 @@ def get_myself():
     if not user:
         logger.error("session user {0} not in database".format(session['username']))
         return NoContent, 500
-    result = get_user_with_groups(user.id)
-    result['seed'] = user.seed
-    result['seed_img'] = pyotp.totp.TOTP(user.seed).provisioning_uri(user.dom_name, issuer_name=AccountRestService.config.general().get('totp_issuer'))
-    return result, 200
-
-
-@auth.login_required
-def regen_totp():
-    if 'username' not in session:
-        return NoContent, 500
-    user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
-    if not user:
-        logger.error("session user {0} not in database".format(session['username']))
-        return NoContent, 500
-    user.seed = pyotp.random_base32()
-    try:
-        db_session.commit()
-        return NoContent, 200
-    except SQLAlchemyError:
-        logger.exception("error while creating account")
-        return NoContent, 500
-
+    return get_user_with_groups(user.id), 200

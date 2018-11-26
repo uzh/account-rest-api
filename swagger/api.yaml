@@ -138,32 +138,6 @@
             description: Not authorized
           404:
             description: User not found
-    /authenticate:
-      post:
-        description: Validate user credentials
-        x-swagger-router-controller: api.service
-        operationId: authenticate
-        parameters:
-          - name: logon_name
-            in: query
-            description: name of the user
-            required: true
-            type: string
-          - name: otp
-            in: query
-            description: one time password
-            required: true
-            type: string
-        responses:
-          200:
-            description: uid
-            schema:
-              type: integer
-              format: int32
-          401:
-            description: Not authorized
-          404:
-            description: User not found
     /groups:
       get:
         description: Get all groups
@@ -381,16 +355,6 @@
             description: Profile information for a user
             schema:
               $ref: '#/definitions/User'
-          500:
-            description: Internal error
-    /regen:
-      post:
-        description: Regenerate TOTP seed
-        x-swagger-router-controller: api.user
-        operationId: regen_totp
-        responses:
-          200:
-            description: Regen succeeded
           500:
             description: Internal error
   definitions:

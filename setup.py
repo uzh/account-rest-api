@@ -28,15 +28,13 @@ version = "0.3"
 
 requirements = ["click",
                 "click-log",
-                "python-daemon",
-                "psutil",
                 "sqlalchemy",
                 "connexion",
                 "flask-cors",
-                "gunicorn",
-                "pyotp",
                 "cryptography",
-                "python-ldap"]
+                "python-ldap",
+                "psutil",
+                "gevent"]
 
 test_requirements = ["pytest", "tox"]
 
@@ -70,7 +68,7 @@ setup(name="acpy",
       license="GPLv3",
       entry_points={
           "console_scripts": [
-              "acpy = __init__:cli",
+              "acpy = app:cli",
           ]
       },
       packages=["api"],

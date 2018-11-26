@@ -27,7 +27,7 @@ from flask import session
 from cryptography.fernet import Fernet
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import AccountRestService
+from app import config
 from db.group import Group, Member
 from db.handler import db_session
 from db.service import Service
@@ -43,8 +43,8 @@ def is_admin():
     :return: admin yes/no
     """
     if 'admin' in session:
-        access = AccountRestService.config.admin().get('access')
-        secret = AccountRestService.config.admin().get('secret')
+        access = config.admin().get('access')
+        secret = config.admin().get('secret')
         return Fernet(secret.encode("utf-8")).decrypt(session['admin']).decode('utf-8') == access
     else:
         if 'username' in session:

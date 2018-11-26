@@ -1,19 +1,13 @@
 FROM python:3.6.7-slim
 
-# prepare the image:
-# 1. move user `root`'s home to `/home` where we shall mount
-#    the corresponding host directories where user data resides
-# 2. create mountpoints for volumes
 RUN : \
     && mkdir -p /home /home/.acpy \
     && sed -re '1s|:/root:|:/home:|' -i /etc/passwd \
 ;
 VOLUME /home/.acpy
 
-# copy our source
 COPY ./ /home
 
-# install our package
 WORKDIR /home
 RUN : \
     && apt-get update \
@@ -43,12 +37,9 @@ RUN : \
     && rm -rf /var/cache/debconf/*.dat-old \
     ;
 
-# deploy adapter script (needs to be done last, otherwise it fails when running Python commands above)
 COPY ./etc/docker/sitecustomize.py /usr/local/lib/python3/site-packages/sitecustomize.py
 
-# run this command by default
 ENTRYPOINT ["python", "-m", "acpy"]
 CMD ["--help"]
 
-# open ports
-EXPOSE 5000
+EXPOSE 8080

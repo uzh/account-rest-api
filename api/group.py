@@ -26,13 +26,12 @@ from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin, is_group_admin
-from app import AccountRestService
+from app import auth, config
 from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
 
 logger = logging.getLogger('api.account')
-auth = AccountRestService.auth
 
 
 def get_groups(active=False):
@@ -43,7 +42,7 @@ def get_groups(active=False):
     else:
         groups = [g.dump() for g in db_session.query(Group).all()]
     for i in range(len(groups)):
-        groups[i]['id'] += int(AccountRestService.config.accounting().get('gid_init'))
+        groups[i]['id'] += int(config.accounting().get('gid_init'))
     return groups
 
 
@@ -66,7 +65,7 @@ def add_group(group):
 
 @auth.login_required
 def update_group(gid, group_update):
-    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    gid -= int(config.accounting().get('gid_init'))
     if not is_group_admin(gid):
         return NoContent, 401
     group = db_session.query(Group).filter(Group.id == gid).one_or_none()
@@ -83,7 +82,7 @@ def update_group(gid, group_update):
 
 @auth.login_required
 def get_group_users(gid):
-    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    gid -= int(config.accounting().get('gid_init'))
     if not is_admin():
         user = None
         if 'username' in session:
@@ -101,7 +100,7 @@ def get_group_users(gid):
 
 @auth.login_required
 def add_group_user(gid, user, admin):
-    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    gid -= int(config.accounting().get('gid_init'))
     if not is_group_admin(gid):
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == user).one_or_none()
@@ -119,7 +118,7 @@ def add_group_user(gid, user, admin):
 
 @auth.login_required
 def remove_group_user(gid, user):
-    gid -= int(AccountRestService.config.accounting().get('gid_init'))
+    gid -= int(config.accounting().get('gid_init'))
     if not is_group_admin(gid):
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == user).one_or_none()

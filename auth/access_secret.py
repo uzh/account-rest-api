@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from connexion import NoContent
-from flask import session, request, redirect, abort
+from flask import session, request
 from cryptography.fernet import Fernet
 
 from db.handler import db_session

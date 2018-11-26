@@ -29,4 +29,3 @@ class User(Base):
     dom_name = Column(String(255), unique=True)
     logon_name = Column(String(32), unique=True)
     full_name = Column(String(255))
-    seed = Column(String(16))

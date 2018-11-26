@@ -23,7 +23,7 @@ import pytest
 from cryptography.fernet import Fernet
 
 from config import Config
-from app import AccountRestService
+from app import application
 from tests import access, secret
 
 
@@ -33,8 +33,8 @@ def client():
     config.update('admin', 'access', access)
     config.update('admin', 'secret', secret)
     config.update('database', 'connection', 'sqlite://')
-    ars = AccountRestService(config, auth=False, direct=True)
-    with ars.app.app.test_client() as c:
+    ars = application(config, no_auth=True)
+    with ars.app.test_client() as c:
         yield c
 
 

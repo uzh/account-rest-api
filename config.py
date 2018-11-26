@@ -40,8 +40,6 @@ class DefaultConfig(object):
         config.set('general', 'CORS', 'False')
         config.set('general', 'secret', ''.join(random.choice(allowed_chars) for c in range(14)))
         config.set('general', 'port', '8080')
-        config.set('general', 'debug', 'False')
-        config.set('general', 'totp_issuer', 'Accounting Center')
         config.set('general', 'run_time', expandvars(expanduser('~/.acpy/run_time.data')))
         config.add_section('logging')
         config.set('logging', 'log_file', expandvars(expanduser('~/.acpy/acpy.log')))
@@ -70,16 +68,6 @@ class DefaultConfig(object):
         config.set('accounting', 'ldap_server', 'ldaps://localhost:636')
         config.set('accounting', 'ldap_user_loc', 'uid')
 
-
-
-        config.add_section('gunicorn')
-        config.set('gunicorn', 'bind', '0.0.0.0:{0}'.format(config.get('general', 'port')))
-        config.set('gunicorn', 'pidfile', expandvars(expanduser('~/.acpy/srg.pid')))
-        config.set('gunicorn', 'keepalive', '650')
-        config.set('gunicorn', 'max_requests', '0')
-        config.set('gunicorn', 'max_requests_jitter', '0')
-        config.set('gunicorn', 'worker_class', 'egg:meinheld#gunicorn_worker')
-        config.set('gunicorn', 'workers', '2')
         return config
 
 
@@ -132,9 +120,6 @@ class Config(object):
 
     def accounting(self):
         return self._fetch('accounting')
-
-    def gunicorn(self):
-        return self._fetch('gunicorn')
 
     def update(self, section, option, value):
         self.config.set(section, option, value)

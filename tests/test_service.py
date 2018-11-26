@@ -21,11 +21,9 @@
 
 import pytest
 from cryptography.fernet import Fernet
-from flask import json
-import pyotp
 
 from config import Config
-from app import AccountRestService
+from app import application
 from tests import access, secret
 
 
@@ -35,8 +33,8 @@ def client():
     config.update('admin', 'access', access)
     config.update('admin', 'secret', secret)
     config.update('database', 'connection', 'sqlite://')
-    ars = AccountRestService(config, auth=False, direct=True)
-    with ars.app.app.test_client() as c:
+    ars = application(config, no_auth=True)
+    with ars.app.test_client() as c:
         yield c
 
 
@@ -49,22 +47,4 @@ def test_list_services(client):
     lg = client.post("/api/v1/services?name={0}".format(service_name))
     assert 201 == lg.status_code
     lg = client.get('/api/v1/services')
-    assert 200 == lg.status_code
-
-
-def test_login_validation_for_service(client):
-    with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    lg = client.post('/api/v1/users', json={'dom_name': 'test_user_5', 'full_name': 'test user'})
-    assert 201 == lg.status_code
-    with client.session_transaction() as session:
-        del(session['admin'])
-        session['username'] = 'test_user_5'
-    lg = client.get('/api/v1/me')
-    assert 200 == lg.status_code
-    data = json.loads(lg.data)
-    totp = pyotp.TOTP(data['seed'])
-    with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    lg = client.post('/api/v1/authenticate?logon_name={0}&otp={1}'.format(data['logon_name'], totp.now()))
     assert 200 == lg.status_code
