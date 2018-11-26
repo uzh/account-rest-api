@@ -1,4 +1,4 @@
-# Accounting Center [![Build Status](https://travis-ci.org/uzh/acpy.svg?branch=master)](https://travis-ci.org/uzh/acpy)
+# Accounting Center [![Build Status](https://travis-ci.org/uzh/acpy.svg?branch=master)](https://travis-ci.org/uzh/acpy) [![PyPI version fury.io](https://badge.fury.io/py/acpy.svg)](https://pypi.org/project/acpy/)
 
 The Accounting Center (API) aims to provide a stable rest interface for managing users, groups and resource access.
 If you are running your own infrastructure within an organization, this can enable you to decouple the tight integration with internal authentication systems.
