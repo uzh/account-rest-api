@@ -31,9 +31,10 @@ or clone this repo and run:
 ```bash
 pip install -e .
 ```
-or simply build the docker image:
+or simply build and run the docker image:
 ```bash
 docker build -t acpy .
+docker run -p 8080:8080 acpy start
 ```
 
 ## Using

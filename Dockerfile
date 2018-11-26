@@ -20,8 +20,11 @@ RUN : \
            libffi6 libffi-dev \
            libldap2-dev \
            libsasl2-dev \
-           make \
-    && pip install -e . \
+           make
+
+RUN pip install -e .
+
+RUN : \
     && rm -rf /home/.cache \
     && apt-get remove --purge -y \
            make \
@@ -37,9 +40,9 @@ RUN : \
     && rm -rf /var/cache/debconf/*.dat-old \
     ;
 
-COPY ./etc/docker/sitecustomize.py /usr/local/lib/python3/site-packages/sitecustomize.py
+COPY ./etc/docker/sitecustomize.py /usr/local/lib/python/site-packages/sitecustomize.py
 
-ENTRYPOINT ["python", "-m", "acpy"]
+ENTRYPOINT ["acpy"]
 CMD ["--help"]
 
 EXPOSE 8080
