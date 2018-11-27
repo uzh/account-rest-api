@@ -138,6 +138,134 @@
             description: Not authorized
           404:
             description: User not found
+    /resources:
+      get:
+        description: Get all resources
+        x-swagger-router-controller: api.resource
+        operationId: get_resources
+        responses:
+          200:
+            description: List of all resources
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/Resource'
+          401:
+            description: Not authorized
+      post:
+        description: Add resource
+        x-swagger-router-controller: api.resource
+        operationId: add_resource
+        parameters:
+          - name: name
+            in: query
+            description: Name of the resource to be added
+            required: true
+            type: string
+        responses:
+          201:
+            description: Resource added
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during add
+    /resource/{rid}:
+      get:
+        description: Return groups using this resource
+        x-swagger-router-controller: api.resource
+        operationId: get_resource_groups
+        parameters:
+          - name: rid
+            in: path
+            description: resource id
+            required: true
+            type: integer
+            format: int32
+        responses:
+          200:
+            description: Groups associated with resource
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/Group'
+          401:
+            description: Not authorized
+          404:
+            description: Resource does not exist
+      post:
+        description: Update an existing resource
+        x-swagger-router-controller: api.resource
+        operationId: update_resource
+        parameters:
+          - name: rid
+            in: path
+            description: resource id
+            required: true
+            type: integer
+            format: int32
+          - name: resource
+            in: body
+            description: New resource content
+            required: true
+            schema:
+              $ref: '#/definitions/Resource'
+        responses:
+          200:
+            description: Resource updated
+          401:
+            description: Not authorized
+          500:
+            description: Conflict during update
+      put:
+        description: Add group to a resource
+        x-swagger-router-controller: api.resource
+        operationId: add_resource_group
+        parameters:
+          - name: rid
+            in: path
+            description: Target resource id
+            required: true
+            type: integer
+            format: int32
+          - name: group
+            in: query
+            description: Target group
+            required: true
+            type: string
+        responses:
+          201:
+            description: The group has been added
+          401:
+            description: Not authorized
+          404:
+            description: Resource or group does not exist
+          500:
+            description: Conflict during add
+      delete:
+        description: Remove group from resource
+        x-swagger-router-controller: api.resource
+        operationId: remove_resource_group
+        parameters:
+          - name: rid
+            in: path
+            description: Target resource id
+            required: true
+            type: integer
+            format: int32
+          - name: group
+            in: query
+            description: Target group
+            required: true
+            type: string
+        responses:
+          200:
+            description: The group has been removed from the resource
+          401:
+            description: Not authorized
+          404:
+            description: Resource does not exist
+          500:
+            description: Conflict during remove
     /groups:
       get:
         description: Get all groups
@@ -199,7 +327,7 @@
           404:
             description: Group does not exist
       post:
-        description: Update an existing group (cannot change the name)
+        description: Update an existing group
         x-swagger-router-controller: api.group
         operationId: update_group
         parameters:
@@ -379,6 +507,19 @@
           type: string
         country:
           type: string
+    Resource:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        active:
+          type: boolean
+        groups:
+          type: array
+          items:
+            $ref: '#/definitions/Group'
     User:
       type: object
       required:

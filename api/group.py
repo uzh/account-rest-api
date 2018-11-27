@@ -31,7 +31,7 @@ from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
 
-logger = logging.getLogger('api.account')
+logger = logging.getLogger('api.group')
 
 
 def get_groups(active=False):
