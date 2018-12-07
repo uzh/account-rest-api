@@ -70,7 +70,10 @@ def generate_token(identifier):
         "exp": int(timestamp + int(config.token().get('lifetime'))),
         "sub": str(identifier),
     }
-    return jwt.encode(payload, config.token().get('secret'), algorithm=config.token().get('algorithm'))
+    secret = config.token().get('secret')
+    if not secret:
+        secret = config.general().get('secret')
+    return jwt.encode(payload, secret, algorithm=config.token().get('algorithm'))
 
 
 def validate(token):
@@ -87,7 +90,10 @@ def validate(token):
         return None
     logger.debug("token request for {0}".format(name))
     try:
-        jwt.decode(token, config.token().get('secret'), algorithms=[config.token().get('algorithm')])
+        secret = config.token().get('secret')
+        if not secret:
+            secret = config.general().get('secret')
+        jwt.decode(token, secret, algorithms=[config.token().get('algorithm')])
         if 'admin' in session:
             return session['admin']
         if 'service' in session:

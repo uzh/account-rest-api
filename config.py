@@ -65,6 +65,7 @@ class DefaultConfig(object):
         config.set('authentication', 'base_dn', 'OU=Domain Users,DC=example,DC=com')
         config.set('authentication', 'rdn_attr', 'uid')
         config.set('authentication', 'login_attr', 'mail')
+        config.set('authentication', 'bind_user', 'ldap_admin')
         config.set('authentication', 'bind_pass', 'ldap_admin_pass')
 
         return config

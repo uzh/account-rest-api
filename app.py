@@ -93,8 +93,8 @@ def application(application_config, gevent=False, ui=False, debug=False):
 def cli(ctx, config_file):
     """
     This CLI allows you to manage the Accounting Center API, this service will run in the background. The service is
-    wrapped by gevent by default. Check your config file for settings, the default location is in your home folder
-    under `~/.acpy/api.config`.
+    started direct by default (don't do this in production, use gevent). Check your config file for settings, the
+    default location is in your home folder under `~/.acpy/api.config`.
     """
     ctx.obj = {}
 
@@ -133,6 +133,9 @@ def cli(ctx, config_file):
 @click.option('-f', '--force', is_flag=True, help='force start ignoring recorded state')
 @click.pass_context
 def start(ctx, gevent, ui, debug, force):
+    """
+    start our service, debug enables debugging in Flask
+    """
     runtime_config = dict(gevent=gevent, ui=ui, debug=debug)
     application_config = ctx.obj["CONFIG"]
     runtime = expandvars(expanduser(application_config.general().get("run_time")))
@@ -160,6 +163,9 @@ def start(ctx, gevent, ui, debug, force):
 @click.option('-f', '--force', is_flag=True, help='kill instead of terminate')
 @click.pass_context
 def stop(ctx, force):
+    """
+    stop our service
+    """
     runtime = expandvars(expanduser(ctx.obj['CONFIG'].general().get('run_time')))
     if not exists(runtime):
         logger.error("no previous instance detected")
@@ -187,6 +193,9 @@ def stop(ctx, force):
 @cli.command(help='rest service information')
 @click.pass_context
 def info(ctx):
+    """
+    get some info on how we started the service
+    """
     runtime = expandvars(expanduser(ctx.obj['CONFIG'].general().get('run_time')))
     if not exists(runtime):
         logger.warning("no previous instance detected, cannot determine restart parameters")
