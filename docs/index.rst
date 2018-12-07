@@ -79,13 +79,13 @@ info output will have the following information:
 * debug : enabled or not
 * pid : process id
 
-
 Table of contents
 =================
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   configure
+   recommendation
 
 
 Indices and tables
