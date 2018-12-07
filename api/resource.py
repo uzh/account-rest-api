@@ -25,7 +25,6 @@ from connexion import NoContent
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin
-from api.auth import ensure_token
 from api.group import get_groups
 from db.group import Group
 from db.handler import db_session
@@ -34,7 +33,6 @@ from db.resource import Resource
 logger = logging.getLogger('api.resource')
 
 
-@ensure_token
 def get_resources():
     """
     list all resources (admins)
@@ -45,7 +43,6 @@ def get_resources():
     return [r.dump() for r in db_session.query(Resource).all()], 200
 
 
-@ensure_token
 def add_resource(name):
     """
     add new resource (admins)
@@ -65,7 +62,6 @@ def add_resource(name):
         return NoContent, 500
 
 
-@ensure_token
 def get_resource_groups(rid):
     """
     get groups associated with resource (admins)
@@ -88,7 +84,6 @@ def get_resource_groups(rid):
     return [group for group in groups if evaluate_resource_groups(r, group['id'])], 200
 
 
-@ensure_token
 def update_resource(rid, resource_update):
     """
     update existing resource (admins)
@@ -111,7 +106,6 @@ def update_resource(rid, resource_update):
         return NoContent, 500
 
 
-@ensure_token
 def add_resource_group(rid, name):
     """
     associate group with resource (admins)
@@ -136,7 +130,6 @@ def add_resource_group(rid, name):
         return NoContent, 500
 
 
-@ensure_token
 def remove_resource_group(rid, name):
     """
     remove group association with resource
@@ -161,7 +154,6 @@ def remove_resource_group(rid, name):
         return NoContent, 500
 
 
-@ensure_token
 def get_resource_usage(name):
     """
     get resource usage

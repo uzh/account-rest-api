@@ -26,7 +26,6 @@ from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin
-from api.auth import ensure_token
 from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
@@ -54,7 +53,6 @@ def get_user_with_groups(uid):
     return user
 
 
-@ensure_token
 def get_users():
     """
     get all users (admins)
@@ -65,19 +63,18 @@ def get_users():
     return [get_user_with_groups(u.id) for u in db_session.query(User).all() if u]
 
 
-@ensure_token
-def add_user(user):
+def add_user(u):
     """
     add new user
-    :param user: user
+    :param u: user
     :return: user
     """
     if not is_admin():
         return NoContent, 401
-    if 'admin' == user['dom_name']:
+    if 'admin' == u['dom_name']:
         logger.error("cannot add user admin, this name is reserved")
         return NoContent, 500
-    u = User(**user)
+    u = User(**u)
     try:
         db_session.add(u)
         db_session.commit()
@@ -88,7 +85,6 @@ def add_user(user):
         return NoContent, 500
 
 
-@ensure_token
 def remove_user(name):
     """
     remove existing user
@@ -106,7 +102,6 @@ def remove_user(name):
         return NoContent, 500
 
 
-@ensure_token
 def get_user(uid):
     """
     get user
@@ -118,7 +113,6 @@ def get_user(uid):
     return get_user_with_groups(uid), 200
 
 
-@ensure_token
 def find_user(name):
     """
     find user by name
@@ -145,7 +139,6 @@ def find_user(name):
     return NoContent, 401
 
 
-@ensure_token
 def get_myself():
     """
     get your own info

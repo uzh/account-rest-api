@@ -66,12 +66,12 @@ def test_add_list_remove_user_from_group(client):
     lg = client.get("/api/v1/groups/{0}".format(group_id), headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
-    lg = client.put("/api/v1/groups/{0}?user={1}&admin=False".format(group_id, user_name), headers=generate_token_headers(dict(), token))
+    lg = client.put("/api/v1/groups/{0}?u={1}&admin=False".format(group_id, user_name), headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
     lg = client.get("/api/v1/groups/{0}".format(group_id), headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     assert 1 == len(json.loads(lg.data))
-    lg = client.delete("/api/v1/groups/{0}?user={1}".format(group_id, user_name), headers=generate_token_headers(dict(), token))
+    lg = client.delete("/api/v1/groups/{0}?u={1}".format(group_id, user_name), headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     lg = client.get("/api/v1/groups/{0}".format(group_id), headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
@@ -104,7 +104,7 @@ def test_retrieve_group_users_as_user(client):
     lg = client.get("/api/v1/groups/{0}".format(group_id), headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
-    lg = client.put("/api/v1/groups/{0}?user={1}&admin=False".format(group_id, user_name), headers=generate_token_headers(dict(), token))
+    lg = client.put("/api/v1/groups/{0}?u={1}&admin=False".format(group_id, user_name), headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
 
     lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))

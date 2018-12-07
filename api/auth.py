@@ -22,11 +22,10 @@
 import logging
 import hashlib
 import sys
-from functools import wraps
 from time import time
 
 from connexion import NoContent
-from flask import session, request
+from flask import session
 from flask_ldap3_login import LDAP3LoginManager, AuthenticationResponseStatus
 from jose import JWTError, jwt, ExpiredSignatureError
 
@@ -76,6 +75,13 @@ def generate_token(identifier):
     return jwt.encode(payload, secret, algorithm=config.token().get('algorithm'))
 
 
+def user_by_token(token, required_scopes=None):
+    result = validate(token)
+    if result:
+        return dict(sub=next((name for name, t in tokens.items() if t == token), None), uid=result)
+    return None
+
+
 def validate(token):
     """
     validate if token is valid and not expired
@@ -108,25 +114,6 @@ def validate(token):
     except JWTError:
         logger.exception("error decoding token")
     return None
-
-
-def ensure_token(func):
-    """
-    decorator for our JWT token in header
-    :param func: callable
-    :return: callable or 401
-    """
-    @wraps(func)
-    def decorated_function(*args, **kwargs):
-        logger.debug("access check")
-        if 'X-TOKEN' in request.headers:
-            if validate(request.headers['X-TOKEN']):
-                return func(*args, **kwargs)
-            else:
-                return NoContent, 401
-        else:
-            return NoContent, 401
-    return decorated_function
 
 
 def access_secret_verify(access, secret):

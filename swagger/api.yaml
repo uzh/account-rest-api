@@ -18,6 +18,7 @@
       type: apiKey
       in: header
       name: X-TOKEN
+      x-apikeyInfoFunc: api.auth.user_by_token
   paths:
     /login:
       post:
@@ -357,7 +358,7 @@
         x-swagger-router-controller: api.group
         operationId: add_group
         parameters:
-          - name: group
+          - name: g
             in: body
             required: true
             schema:
@@ -409,7 +410,7 @@
             required: true
             type: integer
             format: int32
-          - name: group
+          - name: g
             in: body
             description: New group content
             required: true
@@ -435,7 +436,7 @@
             required: true
             type: integer
             format: int32
-          - name: user
+          - name: u
             in: query
             description: Target user
             required: true
@@ -467,7 +468,7 @@
             required: true
             type: integer
             format: int32
-          - name: user
+          - name: u
             in: query
             description: Target user
             required: true
@@ -504,7 +505,7 @@
         x-swagger-router-controller: api.user
         operationId: add_user
         parameters:
-          - name: user
+          - name: u
             in: body
             description: User to be added
             required: true

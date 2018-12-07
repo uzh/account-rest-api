@@ -27,7 +27,6 @@ from connexion import NoContent
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.auth import ensure_token
 from db.group import Group, Member
 from db.handler import db_session
 from db.service import Service
@@ -79,7 +78,6 @@ def is_group_admin(group):
     return False
 
 
-@ensure_token
 def get_admins():
     """
     get a list of all users that are in the group admins
@@ -94,7 +92,6 @@ def get_admins():
     return [u.dump() for u in users]
 
 
-@ensure_token
 def add_admin(name):
     """
     add an existing user to admins
@@ -116,7 +113,6 @@ def add_admin(name):
         return NoContent, 500
 
 
-@ensure_token
 def remove_admin(name):
     """
     remove an existing user from admins
@@ -138,7 +134,6 @@ def remove_admin(name):
         return NoContent, 500
 
 
-@ensure_token
 def get_services():
     """
     list all service accounts
@@ -149,7 +144,6 @@ def get_services():
     return [dict(name=s.name, access=s.access) for s in db_session.query(Service).all()], 200
 
 
-@ensure_token
 def add_service(name):
     """
     add a service account
@@ -174,7 +168,6 @@ def add_service(name):
         return NoContent, 500
 
 
-@ensure_token
 def remove_service(name):
     """
     remove a service account

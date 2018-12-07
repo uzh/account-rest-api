@@ -26,7 +26,6 @@ from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin, is_group_admin
-from api.auth import ensure_token
 from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
@@ -34,7 +33,6 @@ from db.user import User
 logger = logging.getLogger('api.group')
 
 
-@ensure_token
 def get_groups(active=False):
     """
     list all groups (admins only)
@@ -50,21 +48,20 @@ def get_groups(active=False):
     return groups, 200
 
 
-@ensure_token
-def add_group(group):
+def add_group(g):
     """
     add a group (admins only)
-    :param group: group
+    :param g: group
     :return: group
     """
     if not is_admin():
         return NoContent, 401
-    u = db_session.query(User).filter(User.dom_name == group['dom_name']).one_or_none()
+    u = db_session.query(User).filter(User.dom_name == g['dom_name']).one_or_none()
     if not u:
-        return "could not find user {0} for ownership".format(group['dom_name']), 404
-    group.pop('dom_name', None)
+        return "could not find user {0} for ownership".format(g['dom_name']), 404
+    g.pop('dom_name', None)
     try:
-        g = Group(**group, user_id=u.id)
+        g = Group(**g, user_id=u.id)
         db_session.add(g)
         db_session.commit()
         db_session.refresh(g)
@@ -74,12 +71,11 @@ def add_group(group):
         return NoContent, 500
 
 
-@ensure_token
-def update_group(gid, group_update):
+def update_group(gid, g):
     """
     update a group (admins and group admins)
     :param gid: group id
-    :param group_update: group
+    :param g: group
     :return: success or fail
     """
     if not is_group_admin(gid):
@@ -87,8 +83,8 @@ def update_group(gid, group_update):
     group = db_session.query(Group).filter(Group.id == gid).one_or_none()
     group.pop('id', None)
     try:
-        for k in group_update:
-            setattr(group, k, group_update[k])
+        for k in g:
+            setattr(group, k, g[k])
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:
@@ -96,7 +92,6 @@ def update_group(gid, group_update):
         return NoContent, 500
 
 
-@ensure_token
 def get_group_users(gid):
     """
     get users of a group (admins, group admins and members)
@@ -118,23 +113,22 @@ def get_group_users(gid):
     return users, 200
 
 
-@ensure_token
-def add_group_user(gid, user, admin):
+def add_group_user(gid, u, admin):
     """
     add user to group (admins and group admins)
     :param gid: group id
-    :param user: dom_name
+    :param u: dom_name
     :param admin: add as admin
     :return:
     """
     if not is_group_admin(gid):
         return NoContent, 401
-    user = db_session.query(User).filter(User.dom_name == user).one_or_none()
-    if not user:
+    u = db_session.query(User).filter(User.dom_name == u).one_or_none()
+    if not u:
         return 'User does not exist', 404
     group = db_session.query(Group).filter(Group.id == gid).one()
     try:
-        db_session.add(Member(group=group, user=user, admin=admin))
+        db_session.add(Member(group=group, user=u, admin=admin))
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
@@ -142,22 +136,21 @@ def add_group_user(gid, user, admin):
         return NoContent, 500
 
 
-@ensure_token
-def remove_group_user(gid, user):
+def remove_group_user(gid, u):
     """
     remove user from group (admins and group admins)
     :param gid: group id
-    :param user: dom_name
+    :param u: dom_name
     :return: success or failure
     """
     if not is_group_admin(gid):
         return NoContent, 401
-    user = db_session.query(User).filter(User.dom_name == user).one_or_none()
-    if not user:
+    u = db_session.query(User).filter(User.dom_name == u).one_or_none()
+    if not u:
         return 'User does not exist', 404
     group = db_session.query(Group).filter(Group.id == gid).one()
     try:
-        db_session.query(Member).filter(Member.group == group and Member.user == user).delete()
+        db_session.query(Member).filter(Member.group == group and Member.user == u).delete()
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:
