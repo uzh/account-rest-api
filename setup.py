@@ -31,8 +31,8 @@ requirements = ["click",
                 "sqlalchemy",
                 "connexion",
                 "flask-cors",
-                "cryptography",
-                "python-ldap",
+                "flask-ldap3-login",
+                "python-jose",
                 "psutil",
                 "gevent"]
 

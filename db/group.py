@@ -40,9 +40,6 @@ class Group(Base):
     user_id = Column(Integer, ForeignKey(User.id))
 
     active = Column(Boolean)
-    postal_code = Column(String(10))
-    city = Column(String(255))
-    country = Column(String(2))
 
     user = relationship('User', foreign_keys='Group.user_id')
 

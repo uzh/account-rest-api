@@ -19,7 +19,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from cryptography.fernet import Fernet
+import hashlib
 
 access = 'access'
-secret = Fernet.generate_key().decode('utf-8')
+secret = 'secret'
+encoded_secret = hashlib.sha256(secret.encode('utf-8')).hexdigest()
+
+
+def generate_token_headers(headers, token):
+    headers['X-TOKEN'] = token
+    return headers

@@ -19,15 +19,15 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+import hashlib
 import logging
 import random
 
 from connexion import NoContent
 from flask import session
-from cryptography.fernet import Fernet
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import config
+from api.auth import ensure_token
 from db.group import Group, Member
 from db.handler import db_session
 from db.service import Service
@@ -43,9 +43,7 @@ def is_admin():
     :return: admin yes/no
     """
     if 'admin' in session:
-        access = config.admin().get('access')
-        secret = config.admin().get('secret')
-        return Fernet(secret.encode("utf-8")).decrypt(session['admin']).decode('utf-8') == access
+        return True
     else:
         if 'username' in session:
             u = db_session.query(User)
@@ -66,9 +64,7 @@ def is_group_admin(group):
     if is_admin():
         return True
     if 'username' in session:
-        user = None
-        if 'username' in session:
-            user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
+        user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
         if not user:
             return False
         if isinstance(group, int):
@@ -83,7 +79,12 @@ def is_group_admin(group):
     return False
 
 
+@ensure_token
 def get_admins():
+    """
+    get a list of all users that are in the group admins
+    :return: list of users
+    """
     if not is_admin():
         return NoContent, 401
     group = db_session.query(Group).filter(Group.name == 'admins').one()
@@ -93,7 +94,13 @@ def get_admins():
     return [u.dump() for u in users]
 
 
+@ensure_token
 def add_admin(name):
+    """
+    add an existing user to admins
+    :param name: dom_name
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == name).one_or_none()
@@ -109,7 +116,13 @@ def add_admin(name):
         return NoContent, 500
 
 
+@ensure_token
 def remove_admin(name):
+    """
+    remove an existing user from admins
+    :param name: dom_name
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == name).one_or_none()
@@ -125,27 +138,49 @@ def remove_admin(name):
         return NoContent, 500
 
 
+@ensure_token
 def get_services():
+    """
+    list all service accounts
+    :return: list of dict(name, access)
+    """
     if not is_admin():
         return NoContent, 401
     return [dict(name=s.name, access=s.access) for s in db_session.query(Service).all()], 200
 
 
+@ensure_token
 def add_service(name):
+    """
+    add a service account
+    :param name: name of the service
+    :return: secret key in plain text, this will only be possible once!
+    """
     if not is_admin():
         return NoContent, 401
     try:
-        db_session.add(Service(name=name,
-                               access=''.join(random.choice(allowed_chars) for c in range(16)),
-                               secret=Fernet.generate_key().decode('utf-8')))
+        secret = ''.join(random.choice(allowed_chars) for c in range(24))
+        s = Service(name=name,
+                    access=''.join(random.choice(allowed_chars) for c in range(12)),
+                    secret=hashlib.sha256(secret.encode('utf-8')).hexdigest())
+        db_session.add(s)
         db_session.commit()
-        return NoContent, 201
+        db_session.refresh(s)
+        service = s.dump()
+        service['secret'] = secret
+        return service, 201
     except SQLAlchemyError:
         logger.exception("error while adding service")
         return NoContent, 500
 
 
+@ensure_token
 def remove_service(name):
+    """
+    remove a service account
+    :param name: name of the service account
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
     service = db_session.query(Service).filter(Service.name == name).one_or_none()

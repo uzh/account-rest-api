@@ -20,11 +20,11 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
-from cryptography.fernet import Fernet
+from flask import json
 
 from config import Config
 from app import application
-from tests import access, secret
+from tests import access, secret, encoded_secret, generate_token_headers
 
 
 @pytest.fixture(scope='module')
@@ -33,18 +33,23 @@ def client():
     config.update('admin', 'access', access)
     config.update('admin', 'secret', secret)
     config.update('database', 'connection', 'sqlite://')
-    ars = application(config, no_auth=True)
+    ars = application(config)
     with ars.app.test_client() as c:
         yield c
 
 
 def test_list_services(client):
-    with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    service_name = 'test_service'
-    lg = client.get('/api/v1/services')
+    lg = client.post("/api/v1/login?username={0}&password={1}".format(access, encoded_secret))
     assert 200 == lg.status_code
-    lg = client.post("/api/v1/services?name={0}".format(service_name))
+    token = json.loads(lg.data)
+
+    service_name = 'test_service'
+    lg = client.get('/api/v1/services', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+    lg = client.post("/api/v1/services?name={0}".format(service_name), headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
-    lg = client.get('/api/v1/services')
+    lg = client.get('/api/v1/services', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+
+    lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code

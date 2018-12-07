@@ -13,7 +13,43 @@
     - application/json
   produces:
     - application/json
+  securityDefinitions:
+    tokenHeader:
+      type: apiKey
+      in: header
+      name: X-TOKEN
   paths:
+    /login:
+      post:
+        summary: login
+        operationId: api.auth.login
+        parameters:
+          - name: username
+            in: query
+            required: true
+            type: string
+          - name: password
+            in: query
+            required: true
+            type: string
+        responses:
+          200:
+            description: authorization token
+            schema:
+              type: string
+          401:
+            description: unauthorized
+          500:
+            description: error while logging in
+    /logout:
+      post:
+        summary: logout
+        operationId: api.auth.logout
+        responses:
+          200:
+            description: logged out
+        security:
+          - tokenHeader: []
     /admins:
       get:
         description: Get all admins
@@ -28,6 +64,8 @@
                 $ref: '#/definitions/User'
           401:
             description: Not authorized
+        security:
+          - tokenHeader: []
       post:
         description: Assign user to admins
         x-swagger-router-controller: api.admin
@@ -47,6 +85,8 @@
             description: User not found
           500:
             description: Conflict during add
+        security:
+          - tokenHeader: []
       delete:
         description: Remove user to admins
         x-swagger-router-controller: api.admin
@@ -66,6 +106,8 @@
             description: User not found
           500:
             description: Conflict during remove
+        security:
+          - tokenHeader: []
     /services:
       get:
         description: Get all service accounts
@@ -80,6 +122,8 @@
                 $ref: '#/definitions/Service'
           401:
             description: Not authorized
+        security:
+          - tokenHeader: []
       post:
         description: Service to add
         x-swagger-router-controller: api.admin
@@ -99,6 +143,8 @@
             description: Not authorized
           500:
             description: Conflict during add
+        security:
+          - tokenHeader: []
       delete:
         description: Remove service
         x-swagger-router-controller: api.admin
@@ -118,6 +164,8 @@
             description: Service not found
           500:
             description: Conflict during remove
+        security:
+          - tokenHeader: []
     /find:
       get:
         description: Find user by name
@@ -138,6 +186,8 @@
             description: Not authorized
           404:
             description: User not found
+        security:
+          - tokenHeader: []
     /resources:
       get:
         description: Get all resources
@@ -152,6 +202,8 @@
                 $ref: '#/definitions/Resource'
           401:
             description: Not authorized
+        security:
+          - tokenHeader: []
       post:
         description: Add resource
         x-swagger-router-controller: api.resource
@@ -165,10 +217,14 @@
         responses:
           201:
             description: Resource added
+            schema:
+              $ref: '#/definitions/Resource'
           401:
             description: Not authorized
           500:
             description: Conflict during add
+        security:
+          - tokenHeader: []
     /resource/{rid}:
       get:
         description: Return groups using this resource
@@ -192,6 +248,8 @@
             description: Not authorized
           404:
             description: Resource does not exist
+        security:
+          - tokenHeader: []
       post:
         description: Update an existing resource
         x-swagger-router-controller: api.resource
@@ -216,6 +274,8 @@
             description: Not authorized
           500:
             description: Conflict during update
+        security:
+          - tokenHeader: []
       put:
         description: Add group to a resource
         x-swagger-router-controller: api.resource
@@ -227,9 +287,9 @@
             required: true
             type: integer
             format: int32
-          - name: group
+          - name: name
             in: query
-            description: Target group
+            description: Target group name
             required: true
             type: string
         responses:
@@ -241,6 +301,8 @@
             description: Resource or group does not exist
           500:
             description: Conflict during add
+        security:
+          - tokenHeader: []
       delete:
         description: Remove group from resource
         x-swagger-router-controller: api.resource
@@ -252,9 +314,9 @@
             required: true
             type: integer
             format: int32
-          - name: group
+          - name: name
             in: query
-            description: Target group
+            description: Target group name
             required: true
             type: string
         responses:
@@ -266,6 +328,8 @@
             description: Resource does not exist
           500:
             description: Conflict during remove
+        security:
+          - tokenHeader: []
     /groups:
       get:
         description: Get all groups
@@ -286,6 +350,8 @@
                 $ref: '#/definitions/Group'
           401:
             description: Not authorized
+        security:
+          - tokenHeader: []
       post:
         description: Creates a new group, duplicate names are not allowed
         x-swagger-router-controller: api.group
@@ -298,11 +364,15 @@
               $ref: '#/definitions/Group'
         responses:
           201:
-            description: Group response
+            description: Group added
+            schema:
+              $ref: '#/definitions/Group'
           403:
             description: User is not a group administrator
           500:
             description: Conflicting state during update
+        security:
+          - tokenHeader: []
     /groups/{gid}:
       get:
         description: Return members of a group
@@ -326,6 +396,8 @@
             description: Not authorized
           404:
             description: Group does not exist
+        security:
+          - tokenHeader: []
       post:
         description: Update an existing group
         x-swagger-router-controller: api.group
@@ -350,6 +422,8 @@
             description: Not authorized
           500:
             description: Conflict during update
+        security:
+          - tokenHeader: []
       put:
         description: Add member to a group
         x-swagger-router-controller: api.group
@@ -380,6 +454,8 @@
             description: Group does not exist
           500:
             description: Conflict during add
+        security:
+          - tokenHeader: []
       delete:
         description: Remove member from a group
         x-swagger-router-controller: api.group
@@ -405,6 +481,8 @@
             description: Group does not exist
           500:
             description: Conflict during remove
+        security:
+          - tokenHeader: []
     /users:
       get:
         description: Get all users
@@ -419,6 +497,8 @@
                 $ref: '#/definitions/User'
           401:
             description: Not authorized
+        security:
+          - tokenHeader: []
       post:
         description: Create user
         x-swagger-router-controller: api.user
@@ -433,10 +513,14 @@
         responses:
           201:
             description: User added
+            schema:
+              $ref: '#/definitions/User'
           401:
             description: Not authorized
           500:
             description: Conflict during create
+        security:
+          - tokenHeader: []
       delete:
         description: Remove user
         x-swagger-router-controller: api.user
@@ -454,6 +538,8 @@
             description: Not authorized
           500:
             description: Conflict during create
+        security:
+          - tokenHeader: []
     /users/{uid}:
       get:
         description: Return user profile
@@ -473,6 +559,8 @@
               $ref: '#/definitions/User'
           404:
             description: User not found
+        security:
+          - tokenHeader: []
     /me:
       get:
         description: Return current user profile
@@ -485,6 +573,8 @@
               $ref: '#/definitions/User'
           500:
             description: Internal error
+        security:
+          - tokenHeader: []
   definitions:
     Group:
       type: object
@@ -499,14 +589,6 @@
           type: string
         active:
           type: boolean
-        address:
-          type: string
-        postal_code:
-          type: string
-        city:
-          type: string
-        country:
-          type: string
     Resource:
       type: object
       required:
@@ -528,17 +610,8 @@
       properties:
         dom_name:
           type: string
-        logon_name:
-          type: string
-          readOnly: true
         full_name:
           type: string
-        seed:
-          type: string
-          readOnly: true
-        seed_img:
-          type: string
-          readOnly: true
         groups:
           type: array
           items:

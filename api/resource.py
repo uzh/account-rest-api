@@ -22,61 +22,88 @@
 import logging
 
 from connexion import NoContent
-from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.admin import is_admin, is_group_admin
+from api.admin import is_admin
+from api.auth import ensure_token
 from api.group import get_groups
-from app import auth, config
-from db.group import Member, Group
+from db.group import Group
 from db.handler import db_session
 from db.resource import Resource
-from db.user import User
 
 logger = logging.getLogger('api.resource')
 
 
+@ensure_token
 def get_resources():
+    """
+    list all resources (admins)
+    :return: list of resource
+    """
     if not is_admin():
         return NoContent, 401
     return [r.dump() for r in db_session.query(Resource).all()], 200
 
 
+@ensure_token
 def add_resource(name):
+    """
+    add new resource (admins)
+    :param name: resource name
+    :return: resource
+    """
     if not is_admin():
         return NoContent, 401
     try:
-        db_session.add(Resource(name=name, active=True))
+        r = Resource(name=name, active=True)
+        db_session.add(r)
         db_session.commit()
-        return NoContent, 201
+        db_session.refresh(r)
+        return r.dump(), 201
     except SQLAlchemyError:
         logger.exception("error while creating resource")
         return NoContent, 500
 
 
+@ensure_token
 def get_resource_groups(rid):
+    """
+    get groups associated with resource (admins)
+    :param rid: resource id
+    :return: list of group
+    """
     if not is_admin():
         return NoContent, 401
 
-    def resource_groups(resource):
+    def evaluate_resource_groups(resource, gid):
         for group in resource.groups:
-            group['id'] += int(config.accounting().get('gid_init'))
-            yield group
-    resource = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
-    if not resource:
+            if gid == group.id:
+                return True
+        return False
+
+    r = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
+    if not r:
         return NoContent, 404
-    return [group for group in get_groups(True) if group in resource_groups(resource)], 200
+    groups, code = get_groups(True)
+    return [group for group in groups if evaluate_resource_groups(r, group['id'])], 200
 
 
+@ensure_token
 def update_resource(rid, resource_update):
+    """
+    update existing resource (admins)
+    :param rid: resource id
+    :param resource_update: resource
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
-    resource = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
-    if not resource:
+    r = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
+    if not r:
         return NoContent, 404
     try:
         for k in resource_update:
-            setattr(resource, k, resource_update[k])
+            setattr(r, k, resource_update[k])
         db_session.commit()
         return NoContent, 200
     except SQLAlchemyError:
@@ -84,17 +111,24 @@ def update_resource(rid, resource_update):
         return NoContent, 500
 
 
-def add_resource_group(rid, group_name):
+@ensure_token
+def add_resource_group(rid, name):
+    """
+    associate group with resource (admins)
+    :param rid: resource id
+    :param name: group name
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
-    resource = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
-    group = db_session.query(Group).filter(Group.name == group_name).one_or_none()
-    if not resource or not group:
+    r = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
+    g = db_session.query(Group).filter(Group.name == name).one_or_none()
+    if not r or not g:
         return NoContent, 404
-    if group in resource.groups:
+    if g in r.groups:
         return 'Group already assigned to resource', 500
     try:
-        resource.groups.append(group)
+        r.groups.append(g)
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
@@ -102,19 +136,39 @@ def add_resource_group(rid, group_name):
         return NoContent, 500
 
 
-def remove_resource_group(rid, group_name):
+@ensure_token
+def remove_resource_group(rid, name):
+    """
+    remove group association with resource
+    :param rid: resource id
+    :param name: group name
+    :return: success or failure
+    """
     if not is_admin():
         return NoContent, 401
-    resource = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
-    group = db_session.query(Group).filter(Group.name == group_name).one_or_none()
-    if not resource or not group:
+    r = db_session.query(Resource).filter(Resource.id == rid).one_or_none()
+    g = db_session.query(Group).filter(Group.name == name).one_or_none()
+    if not r or not g:
         return NoContent, 404
-    if group not in resource.groups:
+    if g not in r.groups:
         return 'Group not assigned to resource', 500
     try:
-        resource.groups.remove(group)
+        r.groups.remove(g)
         db_session.commit()
         return NoContent, 201
     except SQLAlchemyError:
         logger.exception("error while updating group")
         return NoContent, 500
+
+
+@ensure_token
+def get_resource_usage(name):
+    """
+    get resource usage
+    :param name: resource name
+    :return:
+    """
+    resource = db_session.query(Resource).filter(Resource.name == name).one_or_none()
+    if resource:
+        pass
+    pass

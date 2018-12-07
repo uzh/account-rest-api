@@ -22,3 +22,5 @@
 import api.admin
 import api.group
 import api.user
+import api.resource
+import api.auth

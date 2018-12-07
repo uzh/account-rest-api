@@ -27,5 +27,4 @@ from db.handler import Base
 class User(Base):
     __tablename__ = "users"
     dom_name = Column(String(255), unique=True)
-    logon_name = Column(String(32), unique=True)
     full_name = Column(String(255))

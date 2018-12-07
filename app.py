@@ -35,8 +35,6 @@ from flask_cors import CORS
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from auth import NoAuth
-from auth.access_secret import AccessSecretToken
 from config import Config
 from db.group import Group
 from db.handler import init_db
@@ -45,16 +43,11 @@ from db.service import Service
 logger = logging.getLogger()
 click_log.basic_config(logger)
 
-auth = NoAuth()
-service_auth = NoAuth()
-
 config = None
 
 
-def application(application_config, no_auth, gevent=False, ui=False, debug=False):
+def application(application_config, gevent=False, ui=False, debug=False):
     global config
-    global auth
-    global service_auth
     port = int(application_config.general().get('port'))
     logger.debug("initializing database")
     config = application_config
@@ -63,7 +56,7 @@ def application(application_config, no_auth, gevent=False, ui=False, debug=False
         logger.warning("enabling UI")
     options = {"swagger_ui": ui}
     if gevent:
-        logger.info("gunicorn application")
+        logger.info("gevent application")
         app = connexion.FlaskApp(__name__, port=port, debug=debug, specification_dir='swagger/', server='gevent', options=options)
     else:
         logger.info("direct request")
@@ -86,11 +79,7 @@ def application(application_config, no_auth, gevent=False, ui=False, debug=False
             session.commit()
     except SQLAlchemyError:
         logger.exception('failed to add admin group')
-    if no_auth:
-        logger.warning("authorization disabled")
-    else:
-        auth = NoAuth()
-        service_auth = AccessSecretToken()
+    logger.info("configuring api")
     app.add_api('api.yaml')
     if application_config.general().get('CORS'):
         CORS(app.app)
@@ -138,18 +127,17 @@ def cli(ctx, config_file):
 
 
 @cli.command(help='start api')
-@click.option('-n', '--no-auth', is_flag=True, help='disable authentication')
 @click.option('-g', '--gevent', is_flag=True, help='use gevent as server')
 @click.option('-u', '--ui', is_flag=True, help='enable swagger ui (url/api/v1/ui)')
 @click.option('-d', '--debug', is_flag=True, help='enable debug mode')
 @click.option('-f', '--force', is_flag=True, help='force start ignoring recorded state')
 @click.pass_context
-def start(ctx, no_auth, gevent, ui, debug, force):
-    runtime_config = dict(no_auth=no_auth, gevent=gevent, ui=ui, debug=debug)
+def start(ctx, gevent, ui, debug, force):
+    runtime_config = dict(gevent=gevent, ui=ui, debug=debug)
     application_config = ctx.obj["CONFIG"]
     runtime = expandvars(expanduser(application_config.general().get("run_time")))
     if not exists(runtime) or debug or force:
-        app = application(application_config, no_auth, gevent, ui, debug)
+        app = application(application_config, gevent, ui, debug)
         runtime_config['pid'] = os.getpid()
         with open(runtime, 'wb') as f:
             pickle.dump(runtime_config, f)

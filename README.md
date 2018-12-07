@@ -1,11 +1,11 @@
 # Accounting Center [![Build Status](https://travis-ci.org/uzh/acpy.svg?branch=master)](https://travis-ci.org/uzh/acpy) [![PyPI version fury.io](https://badge.fury.io/py/acpy.svg)](https://pypi.org/project/acpy/)
 
-The Accounting Center (API) aims to provide a stable rest interface for managing users, groups and resource access.
-If you are running your own infrastructure within an organization, this can enable you to decouple the tight integration with internal authentication systems.
-The idea is that users authenticate on the service using an EduID (ex. [shibboleth](https://www.shibboleth.net/)) compliant service.
+The Accounting Center (API) aims to provide a stable rest interface for accounting resource usage of clusters and private clouds and managing users of a group/tenant.
+The idea is that users authenticate on the service using an LDAP compliant account, and can see their own resource usage, and group resource usage.
+If users are group administrators, they can add/remove users from the group.
 
-For connecting infrastructure services to this authentication mechanism please use the following:
-* 
+In some magical way to be defined (probably with a couple of hacky scripts and cron), cluster controllers and cloud controllers will regularly update resource usage using a service account.
+These controllers will also check (and modify) existing group structures within their respective systems.
 
 The package is self contained and has a command line interface.
 Information regarding the configuration options can be found in the docs.
@@ -13,16 +13,9 @@ Details regarding the CLI options can be found in the [docs](https://acpy.readth
 The application is hosted on port 8080 by default.
 In production run [nginx](https://www.nginx.com/) in front of it as a reverse proxy, with HTTPS configured (check the [docs](https://acpy.readthedocs.io/en/latest/) for the recommended installation and settings).
 
-NOTE: this is all still pre-alpha, only use as a reference for the time being
-## Components
-
-* [Connexion](https://github.com/zalando/connexion) framework 
-* EduID stuff
-* LDAP stuff
-
+NOTE: this is all still alpha, only use as a reference for the time being
 
 ## Installation
-
 Either install the package using pip:
 ```bash
 pip install acpy

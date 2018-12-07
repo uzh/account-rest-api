@@ -20,12 +20,12 @@
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 import pytest
-from cryptography.fernet import Fernet
+
 from flask import json
 
 from config import Config
 from app import application
-from tests import access, secret
+from tests import access, secret, generate_token_headers, encoded_secret
 
 
 @pytest.fixture(scope='module')
@@ -34,7 +34,7 @@ def client():
     config.update('admin', 'access', access)
     config.update('admin', 'secret', secret)
     config.update('database', 'connection', 'sqlite://')
-    ars = application(config, no_auth=True)
+    ars = application(config)
     with ars.app.test_client() as c:
         yield c
 
@@ -50,38 +50,64 @@ def test_add_service_fails_for_non_admin(client):
 
 
 def test_add_list_remove_as_admin(client):
-    with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    lg = client.post('/api/v1/users', json={'dom_name': 'test_user', 'full_name': 'test user'})
+    lg = client.post("/api/v1/login?username={0}&password={1}".format(access, encoded_secret))
+    assert 200 == lg.status_code
+    token = json.loads(lg.data)
+
+    lg = client.post('/api/v1/users', json={'dom_name': 'test_user', 'full_name': 'test user'}, headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
-    lg = client.post('/api/v1/admins?name=test_user')
+    lg = client.post('/api/v1/admins?name=test_user', headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
+
+    lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+
+    from api.auth import generate_token
+    from api.auth import tokens
+
+    user_token = generate_token('test_user')
+    tokens['test_user'] = user_token
     with client.session_transaction() as session:
-        del(session['admin'])
         session['username'] = 'test_user'
-    lg = client.get('/api/v1/admins')
+
+    lg = client.delete('/api/v1/admins?name=test_user', headers={'X-TOKEN': user_token})
     assert 200 == lg.status_code
-    assert 1 == len(json.loads(lg.data))
-    lg = client.delete('/api/v1/admins?name=test_user')
-    assert 200 == lg.status_code
-    lg = client.get('/api/v1/admins')
+    lg = client.get('/api/v1/admins', headers={'X-TOKEN': user_token})
     assert 401 == lg.status_code
+    lg = client.post('/api/v1/logout', headers={'X-TOKEN': user_token})
+    assert 200 == lg.status_code
+
+    tokens.pop('test_user', None)
     with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    lg = client.get('/api/v1/admins')
+        if 'username' in session:
+            del(session['username'])
+
+    lg = client.post("/api/v1/login?username={0}&password={1}".format(access, encoded_secret))
+    assert 200 == lg.status_code
+    token = json.loads(lg.data)
+
+    lg = client.get('/api/v1/admins', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     assert [] == json.loads(lg.data)
 
+    lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+
 
 def test_add_list_remove_service(client):
-    with client.session_transaction() as session:
-        session['admin'] = Fernet(secret.encode('utf-8')).encrypt(access.encode('utf-8'))
-    lg = client.post('api/v1/services?name=test_service')
+    lg = client.post("/api/v1/login?username={0}&password={1}".format(access, encoded_secret))
+    assert 200 == lg.status_code
+    token = json.loads(lg.data)
+
+    lg = client.post('api/v1/services?name=test_service', headers=generate_token_headers(dict(), token))
     assert 201 == lg.status_code
-    lg = client.get('api/v1/services')
+    lg = client.get('api/v1/services', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     services = json.loads(lg.data)
     service = [x for x in services if x['name'] == 'test_service']
     assert 1 == len(service)
-    lg = client.delete('api/v1/services?name=test_service')
+    lg = client.delete('api/v1/services?name=test_service', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+
+    lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code

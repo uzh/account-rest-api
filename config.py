@@ -26,8 +26,6 @@ import random
 from pathlib import Path
 from os.path import exists, dirname, expandvars, expanduser
 
-from cryptography.fernet import Fernet
-
 allowed_chars = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 
@@ -41,32 +39,33 @@ class DefaultConfig(object):
         config.set('general', 'secret', ''.join(random.choice(allowed_chars) for c in range(14)))
         config.set('general', 'port', '8080')
         config.set('general', 'run_time', expandvars(expanduser('~/.acpy/run_time.data')))
+
         config.add_section('logging')
         config.set('logging', 'log_file', expandvars(expanduser('~/.acpy/acpy.log')))
         config.set('logging', 'max_bytes', '2621440')
         config.set('logging', 'backup_count', '5')
 
         config.add_section('admin')
-        config.set('admin', 'access', ''.join(random.choice(allowed_chars) for c in range(16)))
-        config.set('admin', 'secret', Fernet.generate_key().decode('utf-8'))
+        config.set('admin', 'access', ''.join(random.choice(allowed_chars) for c in range(12)))
+        config.set('admin', 'secret', ''.join(random.choice(allowed_chars) for c in range(24)))
+
+        config.add_section('token')
+        config.set('token', 'issuer', 'com.example.accounting')
+        config.set('token', 'secret', ''.join(random.choice(allowed_chars) for c in range(14)))
+        config.set('token', 'lifetime', '3600')
+        config.set('token', 'algorithm', 'HS256')
 
         config.add_section('database')
         config.set('database', 'connection', 'sqlite://')
 
-        # config.add_section('ldap')
-        # config.set('ldap', 'host', 'localhost')
-        # config.set('ldap', 'port', '389')
-        # config.set('ldap', 'schema', 'ldap')
-        # config.set('ldap', 'domain', 'example.com')
-        # config.set('ldap', 'search_base', 'OU=Domain Users,DC=example,DC=com')
-        # config.set('ldap', 'administrator_groups', '')
-        # config.set('ldap', 'required_groups', '')
-
-        config.add_section('accounting')
-        config.set('accounting', 'uid_init', '2000')
-        config.set('accounting', 'gid_init', '2000')
-        config.set('accounting', 'ldap_server', 'ldaps://localhost:636')
-        config.set('accounting', 'ldap_user_loc', 'uid')
+        config.add_section('authentication')
+        config.set('authentication', 'host', 'localhost')
+        config.set('authentication', 'port', '636')
+        config.set('authentication', 'ssl', 'True')
+        config.set('authentication', 'base_dn', 'OU=Domain Users,DC=example,DC=com')
+        config.set('authentication', 'rdn_attr', 'uid')
+        config.set('authentication', 'login_attr', 'mail')
+        config.set('authentication', 'bind_pass', 'ldap_admin_pass')
 
         return config
 
@@ -112,14 +111,14 @@ class Config(object):
     def admin(self):
         return self._fetch('admin')
 
+    def token(self):
+        return self._fetch('token')
+
     def database(self):
         return self._fetch('database')
 
-    def ldap(self):
-        return self._fetch('ldap')
-
-    def accounting(self):
-        return self._fetch('accounting')
+    def authentication(self):
+        return self._fetch('authentication')
 
     def update(self, section, option, value):
         self.config.set(section, option, value)

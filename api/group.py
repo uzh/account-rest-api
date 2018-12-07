@@ -26,7 +26,7 @@ from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.admin import is_admin, is_group_admin
-from app import auth, config
+from api.auth import ensure_token
 from db.group import Member, Group
 from db.handler import db_session
 from db.user import User
@@ -34,20 +34,29 @@ from db.user import User
 logger = logging.getLogger('api.group')
 
 
+@ensure_token
 def get_groups(active=False):
+    """
+    list all groups (admins only)
+    :param active: only show active groups
+    :return: list of group
+    """
     if not is_admin():
         return NoContent, 401
     if active:
         groups = [g.dump() for g in db_session.query(Group).all() if g.active]
     else:
         groups = [g.dump() for g in db_session.query(Group).all()]
-    for i in range(len(groups)):
-        groups[i]['id'] += int(config.accounting().get('gid_init'))
-    return groups
+    return groups, 200
 
 
-@auth.login_required
+@ensure_token
 def add_group(group):
+    """
+    add a group (admins only)
+    :param group: group
+    :return: group
+    """
     if not is_admin():
         return NoContent, 401
     u = db_session.query(User).filter(User.dom_name == group['dom_name']).one_or_none()
@@ -55,17 +64,24 @@ def add_group(group):
         return "could not find user {0} for ownership".format(group['dom_name']), 404
     group.pop('dom_name', None)
     try:
-        db_session.add(Group(**group, user_id=u.id))
+        g = Group(**group, user_id=u.id)
+        db_session.add(g)
         db_session.commit()
-        return NoContent, 201
+        db_session.refresh(g)
+        return g.dump(), 201
     except SQLAlchemyError:
         logger.exception("error while creating group")
         return NoContent, 500
 
 
-@auth.login_required
+@ensure_token
 def update_group(gid, group_update):
-    gid -= int(config.accounting().get('gid_init'))
+    """
+    update a group (admins and group admins)
+    :param gid: group id
+    :param group_update: group
+    :return: success or fail
+    """
     if not is_group_admin(gid):
         return NoContent, 401
     group = db_session.query(Group).filter(Group.id == gid).one_or_none()
@@ -80,27 +96,37 @@ def update_group(gid, group_update):
         return NoContent, 500
 
 
-@auth.login_required
+@ensure_token
 def get_group_users(gid):
-    gid -= int(config.accounting().get('gid_init'))
+    """
+    get users of a group (admins, group admins and members)
+    :param gid: group id
+    :return: list of user
+    """
     if not is_admin():
-        user = None
+        u = None
         if 'username' in session:
-            user = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
-        if not user or not db_session.query(Member).filter(Member.group_id == gid and Member.user_id == user.id).one_or_none():
+            u = db_session.query(User).filter(User.dom_name == session['username']).one_or_none()
+        if not u or not db_session.query(Member).filter(Member.group_id == gid and Member.user_id == u.id).one_or_none():
             logger.warning("user {0} not found as part of group".format(session['username']))
             return NoContent, 401
     users = []
     for group_user in db_session.query(Member).filter(Member.group_id == gid).all():
         gu = db_session.query(User).filter(User.id == group_user.user_id).one_or_none()
         if gu:
-            users.append(dict(dom_name=gu.dom_name, full_name=gu.full_name, logon_name=gu.logon_name, admin=group_user.admin))
+            users.append(dict(dom_name=gu.dom_name, full_name=gu.full_name, admin=group_user.admin))
     return users, 200
 
 
-@auth.login_required
+@ensure_token
 def add_group_user(gid, user, admin):
-    gid -= int(config.accounting().get('gid_init'))
+    """
+    add user to group (admins and group admins)
+    :param gid: group id
+    :param user: dom_name
+    :param admin: add as admin
+    :return:
+    """
     if not is_group_admin(gid):
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == user).one_or_none()
@@ -116,9 +142,14 @@ def add_group_user(gid, user, admin):
         return NoContent, 500
 
 
-@auth.login_required
+@ensure_token
 def remove_group_user(gid, user):
-    gid -= int(config.accounting().get('gid_init'))
+    """
+    remove user from group (admins and group admins)
+    :param gid: group id
+    :param user: dom_name
+    :return: success or failure
+    """
     if not is_group_admin(gid):
         return NoContent, 401
     user = db_session.query(User).filter(User.dom_name == user).one_or_none()
