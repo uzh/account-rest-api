@@ -36,30 +36,25 @@ from db.service import Service
 from db.user import User
 
 logger = logging.getLogger('api.auth')
-
-admin_access = config.admin().get('access')
-admin_secret = config.admin().get('secret')
-
 ldap_manager = None
-if config.authentication().get('method') == 'ldap':
-    auth_config = dict()
-    auth_config['LDAP_HOST'] = config.authentication().get('host')
-    auth_config['LDAP_PORT'] = int(config.authentication().get('port'))
-    auth_config['LDAP_USE_SSL'] = bool(config.authentication().get('ssl'))
-    auth_config['LDAP_BASE_DN'] = config.authentication().get('base_dn')
-    auth_config['LDAP_USER_RDN_ATTR'] = config.authentication().get('rdn_attr')
-    auth_config['LDAP_USER_LOGIN_ATTR'] = config.authentication().get('login_attr')
-    auth_config['LDAP_BIND_USER_DN'] = config.authentication().get('bind_user')
-    auth_config['LDAP_BIND_USER_PASSWORD'] = config.authentication().get('bind_pass')
-    ldap_manager = LDAP3LoginManager()
-    ldap_manager.init_config(auth_config)
-
-token_issuer = config.token().get('issuer')
-token_lifetime = config.token().get('lifetime')
-token_secret = config.token().get('secret')
-token_algorithm = config.token().get('algorithm')
-
 tokens = {}
+
+
+def init_ldap():
+    if config.authentication().get('method') == 'ldap':
+        auth_config = dict()
+        auth_config['LDAP_HOST'] = config.authentication().get('host')
+        auth_config['LDAP_PORT'] = int(config.authentication().get('port'))
+        auth_config['LDAP_USE_SSL'] = bool(config.authentication().get('ssl'))
+        auth_config['LDAP_BASE_DN'] = config.authentication().get('base_dn')
+        auth_config['LDAP_USER_RDN_ATTR'] = config.authentication().get('rdn_attr')
+        auth_config['LDAP_USER_LOGIN_ATTR'] = config.authentication().get('login_attr')
+        auth_config['LDAP_BIND_USER_DN'] = config.authentication().get('bind_user')
+        auth_config['LDAP_BIND_USER_PASSWORD'] = config.authentication().get('bind_pass')
+        ldm = LDAP3LoginManager()
+        ldm.init_config(auth_config)
+        return ldm
+    return None
 
 
 def generate_token(identifier):
@@ -70,12 +65,12 @@ def generate_token(identifier):
     """
     timestamp = int(time())
     payload = {
-        "iss": token_issuer,
+        "iss": config.token().get('issuer'),
         "iat": int(timestamp),
-        "exp": int(timestamp + int(token_lifetime)),
+        "exp": int(timestamp + int(config.token().get('lifetime'))),
         "sub": str(identifier),
     }
-    return jwt.encode(payload, token_secret, algorithm=token_algorithm)
+    return jwt.encode(payload, config.token().get('secret'), algorithm=config.token().get('algorithm'))
 
 
 def validate(token):
@@ -92,7 +87,7 @@ def validate(token):
         return None
     logger.debug("token request for {0}".format(name))
     try:
-        jwt.decode(token, token_secret, algorithms=[token_algorithm])
+        jwt.decode(token, config.token().get('secret'), algorithms=[config.token().get('algorithm')])
         if 'admin' in session:
             return session['admin']
         if 'service' in session:
@@ -158,7 +153,7 @@ def login(username, password):
     """
     if 'username' in session:
         return "You are already logged in {0}".format(session['username']), 500
-    if username == admin_access and hashlib.sha256(admin_secret.encode('utf-8')).hexdigest() == password:
+    if username == config.admin().get('access') and hashlib.sha256(config.admin().get('secret').encode('utf-8')).hexdigest() == password:
         session['username'] = 'admin'
         session['admin'] = sys.maxsize
         token = generate_token('admin')
@@ -171,6 +166,8 @@ def login(username, password):
         token = generate_token(service)
         tokens[service] = token
         return token, 200
+    if not ldap_manager:
+        init_ldap()
     if ldap_manager:
         if AuthenticationResponseStatus.success == ldap_manager.authenticate(username, password):
             session['username'] = username
