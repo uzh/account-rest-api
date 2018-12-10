@@ -562,6 +562,66 @@
             description: User not found
         security:
           - tokenHeader: []
+    /usage:
+      get:
+        description: Get resource usage for a specific user for a specific resource
+        x-swagger-router-controller: api.resource
+        operationId: get_resource_usage
+        parameters:
+          - name: r
+            in: query
+            description: Resource
+            required: true
+            type: string
+          - name: u
+            in: query
+            description: User
+            required: false
+            type: string
+          - name: start
+            in: query
+            description: from start date-time
+            required: false
+            type: string
+            format: date-time
+          - name: end
+            in: query
+            description: till end date-time
+            required: false
+            type: string
+            format: date-time
+        responses:
+          200:
+            description: All resource usage for a given user
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/ResourceUsage'
+          401:
+            description: Not authorized
+          404:
+            description: Resource not found
+        security:
+          - tokenHeader: []
+      post:
+        description: Batch insert resource usage
+        x-swagger-router-controller: api.resource
+        operationId: add_resource_usage
+        parameters:
+          - name: usages
+            in: body
+            required: true
+            schema:
+              type: array
+              items:
+                $ref: '#/definitions/ResourceUsage'
+        responses:
+          201:
+            description: All resource usage records inserted
+          401:
+            description: Not authorized
+          500:
+            description: Error during insert
     /me:
       get:
         description: Return current user profile
@@ -603,6 +663,44 @@
           type: array
           items:
             $ref: '#/definitions/Group'
+    ResourceUsage:
+      type: object
+      required:
+        - r
+        - u
+        - start
+        - end
+      properties:
+        r:
+          type: string
+          description: resource
+        u:
+          type: string
+          description: user
+        start:
+          type: string
+          format: date-time
+          description: start time of resource usage
+        end:
+          type: string
+          format: date-time
+          description: end time of resource usage
+        cpu:
+          type: number
+          format: double
+          description: amount of CPU hours during usage
+        gpu:
+          type: number
+          format: double
+          description: amount of GPU hours during usage
+        mem:
+          type: number
+          format: double
+          description: amount of GB's memory usage
+        disk:
+          type: number
+          format: double
+          description: amount of GB's of disk usage
     User:
       type: object
       required:

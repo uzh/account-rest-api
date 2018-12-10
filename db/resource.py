@@ -19,7 +19,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-from sqlalchemy import Column, String, Boolean, DateTime, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, Numeric
 from sqlalchemy.orm import relationship
 
 from db.group import group_resources
@@ -37,11 +37,11 @@ class Resource(Base):
 class ResourceUsage(Base):
     __tablename__ = 'resource_usage'
 
-    resouce = Column(String(100))
+    resource = Column(String(100))
     user = Column(String(255))
     start = Column(DateTime)
     end = Column(DateTime)
-    cpu = Column(Integer)
-    gpu = Column(Integer)
-    mem = Column(Integer)
-    disk = Column(Integer)
+    cpu = Column(Numeric)
+    gpu = Column(Numeric)
+    mem = Column(Numeric)
+    disk = Column(Numeric)

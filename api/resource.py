@@ -22,13 +22,15 @@
 import logging
 
 from connexion import NoContent
+from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.admin import is_admin
+from api.admin import is_admin, user_is_group_admin
 from api.group import get_groups
-from db.group import Group
+from db.group import Group, Member
 from db.handler import db_session
-from db.resource import Resource
+from db.resource import Resource, ResourceUsage
+from db.user import User
 
 logger = logging.getLogger('api.resource')
 
@@ -154,13 +156,62 @@ def remove_resource_group(rid, name):
         return NoContent, 500
 
 
-def get_resource_usage(name):
+def add_resource_usage(usages):
     """
-    get resource usage
-    :param name: resource name
-    :return:
+    add resource usage records
+    :param usages: list of ResourceUsage
+    :return: success or failure
     """
-    resource = db_session.query(Resource).filter(Resource.name == name).one_or_none()
-    if resource:
-        pass
-    pass
+    if not is_admin():
+        if 'service' not in session:
+            return NoContent, 401
+    if not is_admin():
+        invalid = [u for u in usages if u['r'] != session['username']]
+        if len(invalid) > 0:
+            return 'Invalid records found, can only insert your own', 500
+        for usage in usages:
+            usage['resource'] = usage['r']
+            usage['user'] = usage['u']
+            usage.pop('r', None)
+            usage.pop('u', None)
+            db_session.add(ResourceUsage(**usage))
+        return NoContent, 201
+    for usage in usages:
+        usage['resource'] = usage['r']
+        usage['user'] = usage['u']
+        usage.pop('r', None)
+        usage.pop('u', None)
+        db_session.add(ResourceUsage(**usage))
+    return NoContent, 201
+
+
+def get_resource_usage(r, u=None, start=None, end=None):
+    """
+    get resource usage for a resource for a given user
+    :param u: user
+    :param r: resource
+    :param start: start time
+    :param end: end time
+    :return: list of ResourceUsage
+    """
+    resource = db_session.query(Resource).filter(Resource.name == r).one_or_none()
+    user = db_session.query(User).filter(User.dom_name == u).one_or_none()
+    if not is_admin():
+        if not resource or not user:
+            return NoContent, 401
+        allowed = False
+        if u and session['username'] is not u:
+            for g in resource.groups:
+                if db_session.query(Member).filter(Member.group_id ==  g.id and Member.user_id == user.id).one_or_none():
+                    if user_is_group_admin(u, g.name):
+                        allowed = True
+        if not allowed:
+            return NoContent, 401
+    if not resource or not user:
+        return NoContent, 404
+    usages = db_session.query(ResourceUsage).filter(ResourceUsage.resouce == r and
+                                                    ResourceUsage.user == u and
+                                                    ResourceUsage.start == start and
+                                                    ResourceUsage.end == end).all()
+
+    return [u.dump() for u in usages], 200

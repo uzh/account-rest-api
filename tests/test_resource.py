@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+from datetime import datetime, timedelta
 
 import pytest
 from flask import json
@@ -79,6 +80,30 @@ def test_add_remove_group_from_resource(client):
     assert 200 == lg.status_code
     groups = json.loads(lg.data)
     assert 1 == len(groups)
+
+    lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
+    assert 200 == lg.status_code
+
+
+def test_add_resource_usage(client):
+    lg = client.post("/api/v1/login?username={0}&password={1}".format(access, encoded_secret))
+    assert 200 == lg.status_code
+    token = json.loads(lg.data)
+
+    resource = 'test_resource_2'
+    user = 'test_resource_user_2'
+
+    lg = client.post("/api/v1/resources?name={0}".format(resource), headers=generate_token_headers(dict(), token))
+    assert 201 == lg.status_code
+
+    lg = client.post('/api/v1/users', json={'dom_name': user, 'full_name': 'test pi'}, headers=generate_token_headers(dict(), token))
+    assert 201 == lg.status_code
+
+    usages = [dict(r=resource, u=user, start=datetime.now(), end=datetime.now() + timedelta(hours=1), cpu=42.42),
+              dict(r=resource, u=user, start=datetime.now(), end=datetime.now() + timedelta(hours=1), gpu=42.42)]
+
+    lg = client.post('/api/v1/usage', json=usages, headers=generate_token_headers(dict(), token))
+    assert 201 == lg.status_code
 
     lg = client.post('/api/v1/logout', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code

@@ -54,6 +54,22 @@ def is_admin():
         return False
 
 
+def user_is_group_admin(user, group):
+    """
+    check if a user is a group admin
+    :param user: user name
+    :param group: group name
+    :return: admin yes/no
+    """
+    user = db_session.query(User).filter(User.dom_name == user).one_or_none()
+    group = db_session.query(Group).filter(Group.name == group).one_or_none()
+    if not user or not group:
+        return False
+    if db_session.query(Member).filter(Member.group_id == group.id and Member.user_id == user.id and Member.admin).one_or_none():
+        return True
+    return False
+
+
 def is_group_admin(group):
     """
     inclusive search of admins and group admins
@@ -70,11 +86,7 @@ def is_group_admin(group):
             if db_session.query(Member).filter(Member.group_id == group and Member.user_id == user.id and Member.admin).one_or_none():
                 return True
         else:
-            group = db_session.query(Group).filter(Group.name == group).one_or_none()
-            if not group:
-                return False
-            if db_session.query(Member).filter(Member.group_id == group.id and Member.user_id == user.id and Member.admin).one_or_none():
-                return True
+            return user_is_group_admin(user.dom_name, group)
     return False
 
 
