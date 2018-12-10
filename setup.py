@@ -24,13 +24,14 @@ import sys
 
 from setuptools import setup
 
-version = "0.4"
+version = "0.5"
 
 requirements = ["click",
                 "click-log",
                 "python-dateutil",
                 "sqlalchemy",
                 "connexion",
+                "connexion[swagger-ui]",
                 "flask-cors",
                 "flask-ldap3-login",
                 "python-jose",
