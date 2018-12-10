@@ -22,6 +22,7 @@
 import logging
 
 from connexion import NoContent
+from dateutil import parser
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -179,6 +180,8 @@ def add_resource_usage(usages):
     for usage in usages:
         usage['resource'] = usage['r']
         usage['user'] = usage['u']
+        usage['start'] = parser.parse(usage['start'])
+        usage['end'] = parser.parse(usage['end'])
         usage.pop('r', None)
         usage.pop('u', None)
         db_session.add(ResourceUsage(**usage))

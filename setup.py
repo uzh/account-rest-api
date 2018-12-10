@@ -28,6 +28,7 @@ version = "0.4"
 
 requirements = ["click",
                 "click-log",
+                "python-dateutil",
                 "sqlalchemy",
                 "connexion",
                 "flask-cors",

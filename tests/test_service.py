@@ -43,7 +43,7 @@ def test_list_services(client):
     assert 200 == lg.status_code
     token = json.loads(lg.data)
 
-    service_name = 'test_service'
+    service_name = 'test_service_named'
     lg = client.get('/api/v1/services', headers=generate_token_headers(dict(), token))
     assert 200 == lg.status_code
     lg = client.post("/api/v1/services?name={0}".format(service_name), headers=generate_token_headers(dict(), token))
