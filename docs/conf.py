@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../'))
 # -- Project information -----------------------------------------------------
 
 project = 'Accounting Center'
-copyright = '2018, University of Zurich'
+copyright = '2019, Pim Witlox'
 author = 'Pim Witlox'
 
 # The short X.Y version

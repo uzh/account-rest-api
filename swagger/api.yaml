@@ -5,7 +5,7 @@
     title: Accounts
     description: Manage Accounts
     contact:
-      name: University of Zurich - S3IT
+      name: Pim Witlox
     license:
       name: GPLv3
   basePath: /api/v1
