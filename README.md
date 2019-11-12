@@ -1,4 +1,4 @@
-# Accounting Center [![Build Status](https://travis-ci.org/uzh/acpy.svg?branch=master)](https://travis-ci.org/uzh/acpy) [![PyPI version fury.io](https://badge.fury.io/py/acpy.svg)](https://pypi.org/project/acpy/)
+# Accounting Center [![Build Status](https://travis-ci.org/witlox/acpy.svg?branch=master)](https://travis-ci.org/witlox/acpy) [![PyPI version fury.io](https://badge.fury.io/py/acpy.svg)](https://pypi.org/project/acpy/)
 
 The Accounting Center (API) aims to provide a stable rest interface for accounting resource usage of clusters and private clouds and managing users of a group/tenant.
 The idea is that users authenticate on the service using an LDAP compliant account, and can see their own resource usage, and group resource usage.
